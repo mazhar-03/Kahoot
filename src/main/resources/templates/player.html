@@ -1,0 +1,295 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <title>Play — Kahoot Clone</title>
+    <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;700;800;900&display=swap" rel="stylesheet"/>
+    <script src="https://cdn.jsdelivr.net/npm/sockjs-client@1/dist/sockjs.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/stompjs@2.3.3/lib/stomp.min.js"></script>
+    <style>
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+        :root {
+            --purple: #46178f; --pink: #e21b3c; --blue: #1368ce;
+            --yellow: #ffa602; --green: #26890c; --white: #ffffff;
+        }
+        body {
+            font-family: 'Nunito', sans-serif;
+            background: var(--purple);
+            min-height: 100vh;
+            color: white;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .screen { display: none; width: 100%; max-width: 500px; text-align: center; }
+        .screen.active { display: flex; flex-direction: column; align-items: center; }
+
+        /* ── WAITING ── */
+        .waiting-icon { font-size: 5rem; margin-bottom: 20px; animation: spin 3s linear infinite; }
+        .waiting-title { font-size: 2rem; font-weight: 900; margin-bottom: 8px; }
+        .waiting-sub   { opacity: 0.7; font-size: 1rem; font-weight: 700; }
+        .player-name-badge {
+            margin-top: 30px;
+            background: rgba(255,255,255,0.15);
+            border-radius: 50px;
+            padding: 12px 28px;
+            font-size: 1.2rem;
+            font-weight: 800;
+        }
+
+        /* ── QUESTION (countdown) ── */
+        .countdown-wrap {
+            display: flex; flex-direction: column; align-items: center; gap: 16px;
+        }
+        .countdown-label { font-size: 1rem; font-weight: 700; opacity: 0.75; }
+        .countdown-num {
+            font-size: 6rem; font-weight: 900;
+            animation: pulse 1s ease infinite;
+            line-height: 1;
+        }
+
+        /* ── ANSWER BUTTONS ── */
+        .answers-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 14px;
+            width: 100%;
+        }
+        .answer-btn {
+            border: none;
+            border-radius: 14px;
+            padding: 28px 16px;
+            font-size: 1.4rem;
+            font-family: 'Nunito', sans-serif;
+            font-weight: 900;
+            cursor: pointer;
+            display: flex; flex-direction: column;
+            align-items: center; justify-content: center;
+            gap: 8px;
+            box-shadow: 0 6px 0 rgba(0,0,0,0.3);
+            transition: transform 0.1s, box-shadow 0.1s;
+            min-height: 120px;
+        }
+        .answer-btn:active { transform: scale(0.96); }
+        .answer-btn.a { background: #e21b3c; }
+        .answer-btn.b { background: #1368ce; }
+        .answer-btn.c { background: #26890c; }
+        .answer-btn.d { background: #ffa602; color: #222; }
+        .answer-btn .icon { font-size: 2rem; }
+        .answer-btn .icon {
+            color: #fff;
+        }
+        .answer-btn .label { font-size: 0.75rem; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; }
+
+        .answer-btn:disabled {
+            opacity: 0.45;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+
+        /* ── SUBMITTED ── */
+        .submitted-icon { font-size: 6rem; margin-bottom: 16px; animation: popIn 0.5s cubic-bezier(0.34,1.56,0.64,1); }
+        .submitted-text { font-size: 1.5rem; font-weight: 900; }
+        .submitted-sub  { opacity: 0.7; margin-top: 8px; font-size: 1rem; }
+
+        /* ── RESULTS ── */
+        .result-correct {
+            background: var(--green);
+            border-radius: 16px;
+            padding: 24px 40px;
+            margin-bottom: 20px;
+            font-size: 1.4rem;
+            font-weight: 900;
+            box-shadow: 0 6px 0 rgba(0,0,0,0.25);
+            animation: popIn 0.4s cubic-bezier(0.34,1.56,0.64,1);
+        }
+        .result-wrong {
+            background: var(--pink);
+            border-radius: 16px;
+            padding: 24px 40px;
+            margin-bottom: 20px;
+            font-size: 1.4rem;
+            font-weight: 900;
+            box-shadow: 0 6px 0 rgba(0,0,0,0.25);
+            animation: popIn 0.4s cubic-bezier(0.34,1.56,0.64,1);
+        }
+        .score-display {
+            font-size: 1.1rem;
+            font-weight: 700;
+            opacity: 0.85;
+            margin-top: 8px;
+        }
+        .rank-badge {
+            background: rgba(255,255,255,0.15);
+            border-radius: 50px;
+            padding: 10px 24px;
+            font-size: 1rem;
+            font-weight: 800;
+            margin-top: 12px;
+        }
+
+        /* ── FINISHED ── */
+        .final-emoji  { font-size: 5rem; margin-bottom: 12px; }
+        .final-title  { font-size: 2rem; font-weight: 900; margin-bottom: 8px; }
+        .final-score  { font-size: 3rem; font-weight: 900; color: var(--yellow); margin: 8px 0; }
+        .final-rank   { font-size: 1.1rem; font-weight: 700; opacity: 0.8; }
+
+        @keyframes spin    { to { transform: rotate(360deg); } }
+        @keyframes pulse   { 0%,100% { transform: scale(1); } 50% { transform: scale(1.08); } }
+        @keyframes popIn   { from { transform: scale(0.4); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+    </style>
+</head>
+<body>
+
+<!-- Waiting in lobby -->
+<div class="screen active" id="screenWaiting">
+    <div class="waiting-icon">🎮</div>
+    <div class="waiting-title">You're in!</div>
+    <div class="waiting-sub">Waiting for the host to start…</div>
+    <div class="player-name-badge" id="nameBadge">Player</div>
+</div>
+
+<!-- Answer buttons -->
+<div class="screen" id="screenAnswer">
+    <div class="answers-grid" id="answersGrid">
+        <button class="answer-btn a" onclick="submitAnswer(0)"><span class="icon">▲</span></button>
+        <button class="answer-btn b" onclick="submitAnswer(1)"><span class="icon">●</span></button>
+        <button class="answer-btn c" onclick="submitAnswer(2)"><span class="icon">■</span></button>
+        <button class="answer-btn d" onclick="submitAnswer(3)"><span class="icon">✦</span></button>
+    </div>
+</div>
+
+<!-- Answer submitted, waiting -->
+<div class="screen" id="screenSubmitted">
+    <div class="submitted-icon">✅</div>
+    <div class="submitted-text">Answer submitted!</div>
+    <div class="submitted-sub">Waiting for others…</div>
+</div>
+
+<!-- Per-question results -->
+<div class="screen" id="screenResults">
+    <div id="resultBanner"></div>
+    <div class="score-display" id="scoreDisplay"></div>
+    <div class="rank-badge" id="rankBadge"></div>
+</div>
+
+<!-- Final screen -->
+<div class="screen" id="screenFinished">
+    <div class="final-emoji" id="finalEmoji">🏆</div>
+    <div class="final-title">Game Over!</div>
+    <div class="final-score" id="finalScore">0</div>
+    <div class="final-rank"  id="finalRank">points</div>
+    <br/>
+    <button onclick="window.location.href='/'" style="
+        background:var(--yellow);color:#222;border:none;border-radius:12px;
+        padding:16px 36px;font-size:1.1rem;font-family:'Nunito',sans-serif;
+        font-weight:900;cursor:pointer;margin-top:16px;">
+        Play again
+    </button>
+</div>
+
+<script>
+    // ── Params ────────────────────────────────────────────────────
+    const params     = new URLSearchParams(window.location.search);
+    const CODE       = params.get('code') || sessionStorage.getItem('gameCode') || '';
+    const PLAYER     = params.get('name') || sessionStorage.getItem('playerName') || 'Player';
+
+    document.getElementById('nameBadge').textContent = PLAYER;
+
+    let myScore = 0;
+    let hasAnswered = false;
+    let lastAnswerIndex = -1;
+
+    // ── WebSocket ─────────────────────────────────────────────────
+    const socket = new SockJS('/ws');
+    const stomp  = Stomp.over(socket);
+    stomp.debug  = null;
+
+    stomp.connect({}, () => {
+        stomp.subscribe(`/topic/game/${CODE}`, msg => {
+            const data = JSON.parse(msg.body);
+            handleEvent(data);
+        });
+    });
+
+    // ── Event handler ─────────────────────────────────────────────
+    function handleEvent(data) {
+        const status = (data.status || '').toLowerCase();
+        if (status === 'question')  onQuestion(data);
+        if (status === 'results')   onResults(data);
+        if (status === 'finished')  onFinished(data);
+    }
+
+    function onQuestion(data) {
+        hasAnswered = false;
+        lastAnswerIndex = -1;
+        // Re-enable all buttons
+        document.querySelectorAll('.answer-btn').forEach(b => b.disabled = false);
+        showScreen('screenAnswer');
+    }
+
+    function submitAnswer(index) {
+        if (hasAnswered) return;
+        hasAnswered = true;
+        lastAnswerIndex = index;
+
+        // Disable all buttons immediately
+        document.querySelectorAll('.answer-btn').forEach(b => b.disabled = true);
+
+        stomp.send('/app/answer', {}, JSON.stringify({
+            gameCode:    CODE,
+            playerName:  PLAYER,
+            answerIndex: index
+        }));
+
+        showScreen('screenSubmitted');
+    }
+
+    function onResults(data) {
+        const correct = data.correctIndex;
+        const wasCorrect = (lastAnswerIndex === correct);
+
+        // Find my entry in the leaderboard
+        const me = (data.leaderboard || []).find(p => p.playerName === PLAYER);
+        if (me) myScore = me.score;
+
+        const banner = document.getElementById('resultBanner');
+        banner.className = wasCorrect ? 'result-correct' : 'result-wrong';
+        banner.textContent = wasCorrect ? '🎉 Correct!' : '😬 Wrong answer';
+
+        document.getElementById('scoreDisplay').textContent = `Total score: ${myScore} pts`;
+
+        const rank = me ? me.rank : '?';
+        const medals = { 1: '🥇', 2: '🥈', 3: '🥉' };
+        document.getElementById('rankBadge').textContent =
+            `${medals[rank] || ''}  #${rank} on the leaderboard`;
+
+        showScreen('screenResults');
+    }
+
+    function onFinished(data) {
+        const me = (data.leaderboard || []).find(p => p.playerName === PLAYER);
+        if (me) myScore = me.score;
+
+        const rank = me ? me.rank : '?';
+        const emojis = { 1: '🏆', 2: '🥈', 3: '🥉' };
+        document.getElementById('finalEmoji').textContent = emojis[rank] || '🎮';
+        document.getElementById('finalScore').textContent = `${myScore} pts`;
+        document.getElementById('finalRank').textContent  = `You finished #${rank}`;
+
+        showScreen('screenFinished');
+    }
+
+    // ── Helpers ───────────────────────────────────────────────────
+    function showScreen(id) {
+        document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+        document.getElementById(id).classList.add('active');
+    }
+</script>
+</body>
+</html>

@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <title>Kahoot Clone</title>
+    <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;700;800;900&display=swap" rel="stylesheet"/>
+    <style>
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+        :root {
+            --purple: #46178f;
+            --pink:   #e21b3c;
+            --blue:   #1368ce;
+            --yellow: #ffa602;
+            --green:  #26890c;
+            --white:  #ffffff;
+        }
+
+        body {
+            font-family: 'Nunito', sans-serif;
+            background: var(--purple);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        /* Decorative background blobs */
+        body::before, body::after {
+            content: '';
+            position: absolute;
+            border-radius: 50%;
+            opacity: 0.15;
+        }
+        body::before {
+            width: 500px; height: 500px;
+            background: #6c2eb9;
+            top: -150px; left: -150px;
+        }
+        body::after {
+            width: 400px; height: 400px;
+            background: #2d0a6e;
+            bottom: -100px; right: -100px;
+        }
+
+        .logo {
+            font-size: clamp(3rem, 8vw, 5.5rem);
+            font-weight: 900;
+            color: var(--white);
+            letter-spacing: -2px;
+            text-shadow: 0 4px 0 rgba(0,0,0,0.3);
+            margin-bottom: 8px;
+            animation: popIn 0.6s cubic-bezier(0.34,1.56,0.64,1);
+        }
+        .tagline {
+            color: rgba(255,255,255,0.7);
+            font-size: 1.1rem;
+            font-weight: 700;
+            margin-bottom: 50px;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+        }
+
+        .card {
+            background: white;
+            border-radius: 16px;
+            padding: 40px;
+            width: 100%;
+            max-width: 420px;
+            box-shadow: 0 8px 40px rgba(0,0,0,0.3);
+            position: relative;
+            z-index: 1;
+            animation: slideUp 0.5s cubic-bezier(0.34,1.2,0.64,1) 0.2s both;
+        }
+
+        .section-title {
+            font-size: 0.85rem;
+            font-weight: 800;
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+            color: #555;
+            margin-bottom: 12px;
+        }
+
+        /* Join form */
+        .join-form { display: flex; flex-direction: column; gap: 12px; }
+
+        input[type="text"] {
+            width: 100%;
+            padding: 16px 20px;
+            font-size: 1.1rem;
+            font-family: 'Nunito', sans-serif;
+            font-weight: 700;
+            border: 3px solid #e0e0e0;
+            border-radius: 10px;
+            outline: none;
+            transition: border-color 0.2s;
+            text-align: center;
+            letter-spacing: 3px;
+        }
+        input[type="text"]:focus { border-color: var(--purple); }
+        input[type="text"]::placeholder { letter-spacing: 1px; font-weight: 600; color: #bbb; }
+
+        .btn {
+            padding: 16px;
+            font-size: 1.1rem;
+            font-family: 'Nunito', sans-serif;
+            font-weight: 800;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            transition: transform 0.1s, box-shadow 0.1s;
+        }
+        .btn:active { transform: scale(0.97); }
+
+        .btn-join {
+            background: var(--blue);
+            color: white;
+            box-shadow: 0 5px 0 #0d4f9e;
+        }
+        .btn-join:hover { box-shadow: 0 3px 0 #0d4f9e; transform: translateY(2px); }
+
+        .divider {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin: 28px 0;
+            color: #ccc;
+            font-weight: 700;
+            font-size: 0.9rem;
+        }
+        .divider::before, .divider::after {
+            content: ''; flex: 1; height: 2px; background: #eee;
+        }
+
+        .btn-host {
+            background: var(--purple);
+            color: white;
+            box-shadow: 0 5px 0 #2d0a6e;
+            display: block;
+            width: 100%;
+            text-align: center;
+            text-decoration: none;
+        }
+        .btn-host:hover { box-shadow: 0 3px 0 #2d0a6e; transform: translateY(2px); }
+
+        .error-msg {
+            background: #ffe8ec;
+            color: var(--pink);
+            border-radius: 8px;
+            padding: 10px 14px;
+            font-weight: 700;
+            font-size: 0.9rem;
+            display: none;
+        }
+
+        @keyframes popIn {
+            from { transform: scale(0.5); opacity: 0; }
+            to   { transform: scale(1);   opacity: 1; }
+        }
+        @keyframes slideUp {
+            from { transform: translateY(40px); opacity: 0; }
+            to   { transform: translateY(0);    opacity: 1; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="logo">kahoot!</div>
+<div class="tagline">The office edition</div>
+
+<div class="card">
+    <!-- JOIN section -->
+    <div class="section-title">🎮 Join a game</div>
+    <div class="join-form">
+        <input type="text" id="gameCode"   placeholder="Game PIN"    maxlength="4" oninput="this.value=this.value.toUpperCase()"/>
+        <input type="text" id="playerName" placeholder="Your nickname" maxlength="20"/>
+        <div class="error-msg" id="joinError"></div>
+        <button class="btn btn-join" onclick="joinGame()">Enter!</button>
+    </div>
+
+    <div class="divider">or</div>
+
+    <!-- HOST section -->
+    <div class="section-title">🏆 Host a game</div>
+    <button class="btn btn-host" onclick="hostGame()">Create new game</button>
+</div>
+
+<script>
+    async function joinGame() {
+        const code = document.getElementById('gameCode').value.trim().toUpperCase();
+        const name = document.getElementById('playerName').value.trim();
+        const err  = document.getElementById('joinError');
+
+        if (!code || code.length < 4) { showError('Enter a 4-letter game PIN'); return; }
+        if (!name)                     { showError('Enter your nickname');         return; }
+
+        try {
+            const res = await fetch(`/api/game/${code}/join`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ playerName: name })
+            });
+            const data = await res.json();
+            if (data.success) {
+                // Store name so the player page can use it
+                sessionStorage.setItem('playerName', name);
+                sessionStorage.setItem('gameCode',   code);
+                window.location.href = `/player?code=${code}&name=${encodeURIComponent(name)}`;
+            } else {
+                showError(data.message || 'Could not join game');
+            }
+        } catch (e) {
+            showError('Connection error — is the server running?');
+        }
+    }
+
+    async function hostGame() {
+        try {
+            const res = await fetch('/api/game/create', { method: 'POST' });
+            const raw = await res.text();
+            console.log('CREATE RESPONSE STATUS:', res.status);
+            console.log('CREATE RESPONSE BODY:', raw);
+            if (!res.ok) { showError('Server error ' + res.status + ': ' + raw); return; }
+            let data;
+            try { data = JSON.parse(raw); } catch(e) { showError('Bad JSON: ' + raw.substring(0,100)); return; }
+            if (!data.gameCode) { showError('gameCode missing. Got: ' + JSON.stringify(data)); return; }
+            window.location.href = '/host?code=' + data.gameCode;
+        } catch (e) {
+            showError('Connection error: ' + e.message);
+        }
+    }
+
+    function showError(msg) {
+        const el = document.getElementById('joinError');
+        el.textContent = msg;
+        el.style.display = 'block';
+        setTimeout(() => el.style.display = 'none', 3000);
+    }
+
+    // Allow Enter key on inputs
+    document.addEventListener('DOMContentLoaded', () => {
+        document.getElementById('playerName').addEventListener('keydown', e => {
+            if (e.key === 'Enter') joinGame();
+        });
+        document.getElementById('gameCode').addEventListener('keydown', e => {
+            if (e.key === 'Enter') document.getElementById('playerName').focus();
+        });
+    });
+</script>
+</body>
+</html>

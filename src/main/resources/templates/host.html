@@ -1,0 +1,390 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <title>Host — Kahoot Clone</title>
+    <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;700;800;900&display=swap" rel="stylesheet"/>
+    <script src="https://cdn.jsdelivr.net/npm/sockjs-client@1/dist/sockjs.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/stompjs@2.3.3/lib/stomp.min.js"></script>
+    <style>
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+        :root {
+            --purple: #46178f; --pink: #e21b3c; --blue: #1368ce;
+            --yellow: #ffa602; --green: #26890c; --white: #ffffff;
+            --opt-a: #e21b3c; --opt-b: #1368ce; --opt-c: #26890c; --opt-d: #ffa602;
+        }
+        body {
+            font-family: 'Nunito', sans-serif;
+            background: var(--purple);
+            min-height: 100vh;
+            color: white;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* ── HEADER ── */
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 16px 28px;
+            background: rgba(0,0,0,0.25);
+        }
+        .header .logo { font-size: 1.6rem; font-weight: 900; letter-spacing: -1px; }
+        .header .game-pin {
+            background: white;
+            color: var(--purple);
+            border-radius: 10px;
+            padding: 8px 20px;
+            font-weight: 900;
+            font-size: 1rem;
+            letter-spacing: 2px;
+        }
+        .header .game-pin span { font-size: 1.6rem; display: block; letter-spacing: 6px; }
+
+        /* ── SCREENS ── */
+        .screen { display: none; flex: 1; flex-direction: column; align-items: center; justify-content: center; padding: 30px 20px; }
+        .screen.active { display: flex; }
+
+        /* ── LOBBY ── */
+        .lobby-title { font-size: 2rem; font-weight: 900; margin-bottom: 8px; }
+        .lobby-sub   { font-size: 1rem; opacity: 0.75; margin-bottom: 30px; }
+        .player-grid {
+            display: flex; flex-wrap: wrap; gap: 12px;
+            justify-content: center;
+            max-width: 700px;
+            margin-bottom: 40px;
+            min-height: 60px;
+        }
+        .player-chip {
+            background: rgba(255,255,255,0.15);
+            border-radius: 50px;
+            padding: 10px 22px;
+            font-weight: 800;
+            font-size: 1rem;
+            animation: popIn 0.3s cubic-bezier(0.34,1.56,0.64,1);
+        }
+        .empty-lobby { opacity: 0.5; font-style: italic; }
+
+        /* ── QUESTION ── */
+        .question-header {
+            display: flex; justify-content: space-between; align-items: center;
+            width: 100%; max-width: 900px; margin-bottom: 20px;
+        }
+        .q-counter { opacity: 0.7; font-weight: 700; }
+        .timer-ring {
+            width: 70px; height: 70px;
+            position: relative;
+            flex-shrink: 0;
+        }
+        .timer-ring svg { transform: rotate(-90deg); }
+        .timer-ring .bg  { fill: none; stroke: rgba(255,255,255,0.2); stroke-width: 6; }
+        .timer-ring .arc { fill: none; stroke: var(--yellow);        stroke-width: 6; stroke-linecap: round; transition: stroke-dashoffset 1s linear; }
+        .timer-number {
+            position: absolute; inset: 0;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 1.4rem; font-weight: 900;
+        }
+
+        .question-box {
+            background: white;
+            color: #222;
+            border-radius: 16px;
+            padding: 30px 40px;
+            font-size: clamp(1.2rem, 3vw, 1.8rem);
+            font-weight: 800;
+            text-align: center;
+            width: 100%; max-width: 900px;
+            margin-bottom: 24px;
+            box-shadow: 0 6px 0 rgba(0,0,0,0.25);
+            min-height: 100px;
+            display: flex; align-items: center; justify-content: center;
+        }
+
+        .options-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 14px;
+            width: 100%; max-width: 900px;
+        }
+        .option-card {
+            border-radius: 12px;
+            padding: 20px 24px;
+            font-size: 1.1rem;
+            font-weight: 800;
+            display: flex; align-items: center; gap: 14px;
+            box-shadow: 0 5px 0 rgba(0,0,0,0.25);
+        }
+        .option-card.a { background: var(--opt-a); }
+        .option-card.b { background: var(--opt-b); }
+        .option-card.c { background: var(--opt-c); }
+        .option-card.d { background: var(--opt-d); }
+        .option-icon { font-size: 1.4rem; flex-shrink: 0; }
+
+        .answers-bar {
+            display: flex; align-items: center; gap: 12px;
+            margin-top: 20px;
+            font-weight: 700; font-size: 0.95rem; opacity: 0.8;
+        }
+        .answers-count { font-size: 2rem; font-weight: 900; opacity: 1; }
+
+        /* ── RESULTS ── */
+        .results-title {
+            font-size: 2.2rem; font-weight: 900; margin-bottom: 30px;
+        }
+        .correct-answer-banner {
+            background: var(--green);
+            border-radius: 12px;
+            padding: 16px 30px;
+            font-size: 1.3rem; font-weight: 800;
+            margin-bottom: 30px;
+            box-shadow: 0 5px 0 rgba(0,0,0,0.25);
+        }
+        .leaderboard { width: 100%; max-width: 600px; display: flex; flex-direction: column; gap: 10px; }
+        .lb-row {
+            display: flex; align-items: center; gap: 16px;
+            background: rgba(255,255,255,0.1);
+            border-radius: 12px;
+            padding: 14px 20px;
+            font-weight: 800;
+            animation: slideIn 0.4s ease both;
+        }
+        .lb-row:nth-child(1) { background: rgba(255,166,2,0.35);  animation-delay: 0.0s; }
+        .lb-row:nth-child(2) { background: rgba(255,255,255,0.2); animation-delay: 0.1s; }
+        .lb-row:nth-child(3) { background: rgba(255,255,255,0.15); animation-delay: 0.2s; }
+        .lb-rank { font-size: 1.4rem; width: 36px; text-align: center; }
+        .lb-name { flex: 1; font-size: 1.1rem; }
+        .lb-score { font-size: 1.2rem; color: var(--yellow); }
+
+        /* ── FINISHED ── */
+        .podium-emoji { font-size: 5rem; margin-bottom: 16px; animation: bounce 0.8s ease infinite alternate; }
+
+        /* ── SHARED BUTTON ── */
+        .btn-action {
+            background: var(--yellow);
+            color: #222;
+            border: none;
+            border-radius: 12px;
+            padding: 18px 48px;
+            font-size: 1.2rem;
+            font-family: 'Nunito', sans-serif;
+            font-weight: 900;
+            cursor: pointer;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            box-shadow: 0 6px 0 #b87400;
+            transition: transform 0.1s, box-shadow 0.1s;
+            margin-top: 24px;
+        }
+        .btn-action:hover { transform: translateY(2px); box-shadow: 0 4px 0 #b87400; }
+
+        @keyframes popIn { from { transform: scale(0.4); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+        @keyframes slideIn { from { transform: translateX(-30px); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+        @keyframes bounce { from { transform: translateY(0); } to { transform: translateY(-12px); } }
+    </style>
+</head>
+<body>
+
+<div class="header">
+    <div class="logo">kahoot!</div>
+    <div class="game-pin">
+        Game PIN
+        <span id="pinDisplay">----</span>
+    </div>
+</div>
+
+<!-- ── LOBBY SCREEN ── -->
+<div class="screen active" id="screenLobby">
+    <div class="lobby-title">Waiting for players…</div>
+    <div class="lobby-sub">Tell everyone to go to this page and enter the PIN</div>
+    <div class="player-grid" id="playerGrid">
+        <div class="empty-lobby">No players yet</div>
+    </div>
+    <button class="btn-action" id="startBtn" onclick="startGame()" disabled>Start game</button>
+</div>
+
+<!-- ── QUESTION SCREEN ── -->
+<div class="screen" id="screenQuestion">
+    <div class="question-header">
+        <div class="q-counter" id="qCounter">Question 1 / 5</div>
+        <div class="timer-ring">
+            <svg viewBox="0 0 70 70" width="70" height="70">
+                <circle class="bg"  cx="35" cy="35" r="30"/>
+                <circle class="arc" cx="35" cy="35" r="30" id="timerArc"
+                        stroke-dasharray="188.5" stroke-dashoffset="0"/>
+            </svg>
+            <div class="timer-number" id="timerNum">20</div>
+        </div>
+    </div>
+    <div class="question-box" id="questionText">Loading…</div>
+    <div class="options-grid" id="optionsGrid"></div>
+    <div class="answers-bar">
+        <div class="answers-count" id="answersCount">0</div>
+        <div>answers received</div>
+    </div>
+</div>
+
+<!-- ── RESULTS SCREEN ── -->
+<div class="screen" id="screenResults">
+    <div class="results-title">Results!</div>
+    <div class="correct-answer-banner" id="correctBanner">✅ Correct answer: …</div>
+    <div class="leaderboard" id="leaderboard"></div>
+    <button class="btn-action" id="nextBtn" onclick="nextQuestion()">Next question →</button>
+</div>
+
+<!-- ── FINISHED SCREEN ── -->
+<div class="screen" id="screenFinished">
+    <div class="podium-emoji">🏆</div>
+    <div class="results-title">Game Over!</div>
+    <div class="leaderboard" id="finalLeaderboard"></div>
+    <button class="btn-action" onclick="window.location.href='/'">Play again</button>
+</div>
+
+<script>
+    // ── URL param ──────────────────────────────────────────────────
+    const params = new URLSearchParams(window.location.search);
+    const CODE   = params.get('code') || '';
+    document.getElementById('pinDisplay').textContent = CODE;
+
+    // ── WebSocket ──────────────────────────────────────────────────
+    const socket = new SockJS('/ws');
+    const stomp  = Stomp.over(socket);
+    stomp.debug  = null; // silence console spam
+
+    stomp.connect({}, () => {
+        // Listen for game events (questions, results, finished)
+        stomp.subscribe(`/topic/game/${CODE}`, msg => {
+            const data = JSON.parse(msg.body);
+            handleGameEvent(data);
+        });
+        // Listen for lobby updates
+        stomp.subscribe(`/topic/lobby/${CODE}`, msg => {
+            const data = JSON.parse(msg.body);
+            updateLobby(data.playerNames);
+        });
+    });
+
+    // ── Timer state ────────────────────────────────────────────────
+    let timerInterval = null;
+    let answersReceived = 0;
+    let totalPlayers = 0;
+    let currentOptions = [];
+    let currentCorrectIndex = -1;
+
+    // ── Event dispatcher ──────────────────────────────────────────
+    function handleGameEvent(data) {
+        const status = (data.status || '').toLowerCase();
+        if (status === 'question') showQuestion(data);
+        if (status === 'results')  showResults(data);
+        if (status === 'finished') showFinished(data);
+    }
+
+    // ── Lobby ─────────────────────────────────────────────────────
+    function updateLobby(names) {
+        totalPlayers = names.length;
+        const grid = document.getElementById('playerGrid');
+        if (!names.length) {
+            grid.innerHTML = '<div class="empty-lobby">No players yet</div>';
+        } else {
+            grid.innerHTML = names.map(n => `<div class="player-chip">${escHtml(n)}</div>`).join('');
+        }
+        document.getElementById('startBtn').disabled = names.length === 0;
+    }
+
+    async function startGame() {
+        await fetch(`/api/game/${CODE}/start`, { method: 'POST' });
+    }
+
+    // ── Question ──────────────────────────────────────────────────
+    function showQuestion(data) {
+        showScreen('screenQuestion');
+        answersReceived = 0;
+        currentOptions  = data.options;
+        document.getElementById('qCounter').textContent   = `Question ${data.questionNumber} / ${data.totalQuestions}`;
+        document.getElementById('questionText').textContent = data.questionText;
+        document.getElementById('answersCount').textContent = '0';
+
+        // Render options
+        const icons = ['▲','●','■','✦'];
+        const cls   = ['a','b','c','d'];
+        document.getElementById('optionsGrid').innerHTML = data.options.map((opt, i) =>
+            `<div class="option-card ${cls[i]}"><span class="option-icon">${icons[i]}</span>${escHtml(opt)}</div>`
+        ).join('');
+
+        // Timer
+        startTimer(data.timeLimitSeconds);
+    }
+
+    function startTimer(seconds) {
+        clearInterval(timerInterval);
+        let remaining = seconds;
+        const arc = document.getElementById('timerArc');
+        const num = document.getElementById('timerNum');
+        const circumference = 188.5;
+
+        function tick() {
+            num.textContent = remaining;
+            arc.style.strokeDashoffset = circumference * (1 - remaining / seconds);
+            if (remaining <= 5) arc.style.stroke = 'var(--pink)';
+            else                arc.style.stroke = 'var(--yellow)';
+            if (remaining <= 0) clearInterval(timerInterval);
+            remaining--;
+        }
+        tick();
+        timerInterval = setInterval(tick, 1000);
+    }
+
+    // Track answer count — the server will broadcast results when everyone answers,
+    // but we still show a running count by subscribing to /topic/answers/{code}
+    // (optional — for now we just show what the results broadcast tells us)
+
+    // ── Results ───────────────────────────────────────────────────
+    function showResults(data) {
+        clearInterval(timerInterval);
+        showScreen('screenResults');
+        currentCorrectIndex = data.correctIndex;
+
+        const correctText = currentOptions[data.correctIndex] || '?';
+        document.getElementById('correctBanner').textContent = `✅ Correct answer: ${correctText}`;
+
+        renderLeaderboard(data.leaderboard, 'leaderboard');
+
+        // Hide Next button on last question (server sends 'finished' next time, but
+        // if it's the last question the host still needs to press Next to trigger finish)
+        document.getElementById('nextBtn').style.display = 'inline-block';
+    }
+
+    async function nextQuestion() {
+        await fetch(`/api/game/${CODE}/next`, { method: 'POST' });
+    }
+
+    // ── Finished ──────────────────────────────────────────────────
+    function showFinished(data) {
+        showScreen('screenFinished');
+        renderLeaderboard(data.leaderboard, 'finalLeaderboard');
+    }
+
+    // ── Helpers ───────────────────────────────────────────────────
+    function showScreen(id) {
+        document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+        document.getElementById(id).classList.add('active');
+    }
+
+    function renderLeaderboard(board, containerId) {
+        const medals = ['🥇','🥈','🥉'];
+        document.getElementById(containerId).innerHTML = board.slice(0, 6).map((p, i) =>
+            `<div class="lb-row" style="animation-delay:${i*0.08}s">
+                <div class="lb-rank">${medals[i] || p.rank}</div>
+                <div class="lb-name">${escHtml(p.playerName)}</div>
+                <div class="lb-score">${p.score} pts</div>
+            </div>`
+        ).join('');
+    }
+
+    function escHtml(s) {
+        return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+    }
+</script>
+</body>
+</html>
