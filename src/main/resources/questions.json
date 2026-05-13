@@ -1,0 +1,37 @@
+[
+  {
+    "text": "What is the capital of France?",
+    "options": ["Berlin", "Madrid", "Paris", "Rome"],
+    "correctIndex": 2,
+    "timeLimitSeconds": 15
+  },
+  {
+    "text": "Which planet is closest to the Sun?",
+    "options": ["Venus", "Mercury", "Earth", "Mars"],
+    "correctIndex": 1,
+    "timeLimitSeconds": 15
+  },
+  {
+    "text": "What is 7 × 8?",
+    "options": ["54", "56", "64", "48"],
+    "correctIndex": 1,
+    "timeLimitSeconds": 15
+  },
+  {
+    "text": "Who wrote 'Hamlet'?",
+    "options": ["Charles Dickens", "Leo Tolstoy", "William Shakespeare", "Mark Twain"],
+    "correctIndex": 2,
+    "timeLimitSeconds": 15
+  },
+  {
+    "text": "What does HTTP stand for?",
+    "options": [
+      "HyperText Transfer Protocol",
+      "High Transfer Text Protocol",
+      "HyperText Transmission Process",
+      "Hyper Transfer Technology Protocol"
+    ],
+    "correctIndex": 0,
+    "timeLimitSeconds": 15
+  }
+]

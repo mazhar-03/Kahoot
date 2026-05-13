@@ -37,7 +37,7 @@ public class GameController {
                     .body(new ApiResponse(false, "Player name cannot be empty"));
         }
 
-        boolean joined = gameService.joinGame(code.toUpperCase(), request.getPlayerName());
+        boolean joined = gameService.joinGame(code.toUpperCase(), request.getPlayerName(), request.getAvatarId());
 
         if (!joined) {
             return ResponseEntity.badRequest()

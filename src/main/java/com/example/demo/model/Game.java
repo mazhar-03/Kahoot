@@ -36,9 +36,8 @@ public class Game {
         return currentQuestionIndex < questions.size() - 1;
     }
 
-    public void addPlayer(String name) {
-        players.putIfAbsent(name, new Player(name));
-    }
+    public void addPlayer(String name) { players.putIfAbsent(name, new Player(name)); }
+    public void addPlayer(String name, String avatarId) { players.putIfAbsent(name, new Player(name, avatarId)); }
 
     public void resetAnswerFlags() {
         players.values().forEach(Player::resetAnswerFlag);

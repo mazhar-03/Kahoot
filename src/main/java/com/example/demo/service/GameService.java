@@ -1,12 +1,11 @@
 package com.example.demo.service;
 
-import com.example.demo.model.Game;
-import com.example.demo.model.GameStatus;
-import com.example.demo.model.Player;
-import com.example.demo.model.Question;
+import com.example.demo.model.*;
 import com.example.demo.model.Dto.*;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
+import tools.jackson.core.type.TypeReference;
+import tools.jackson.databind.ObjectMapper;
 
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
@@ -37,7 +36,7 @@ public class GameService {
     public String createGame() {
         String code = generateCode();
         Game game = new Game(code);
-        game.setQuestions(sampleQuestions());
+        game.setQuestions(loadQuestionsFromFile());
         games.put(code, game);
         return code;
     }
@@ -46,12 +45,12 @@ public class GameService {
      * Adds a player to the lobby and broadcasts the updated player list.
      * Returns false if the game doesn't exist or has already started.
      */
-    public boolean joinGame(String code, String playerName) {
+    public boolean joinGame(String code, String playerName, String avatarId) {
         Game game = games.get(code);
         if (game == null || game.getStatus() != GameStatus.WAITING) {
             return false;
         }
-        game.addPlayer(playerName.trim());
+        game.addPlayer(playerName.trim(), avatarId != null ? avatarId : "white");
         broadcastLobby(game);
         return true;
     }
@@ -107,6 +106,7 @@ public class GameService {
 
         // Mark answered immediately so they can't answer again
         player.setAnsweredCurrentQuestion(true);
+        player.setLastAnswerIndex(payload.getAnswerIndex());
 
         // Score = correct answer? → time-based bonus (max 1000, min 500)
         Question q = game.currentQuestion();
@@ -158,11 +158,19 @@ public class GameService {
     private void broadcastResults(Game game) {
         game.setStatus(GameStatus.RESULTS);
 
+        // Count how many players chose each option (0-3)
+        int[] answerCounts = new int[4];
+        for (Player p : game.getPlayers().values()) {
+            int idx = p.getLastAnswerIndex();
+            if (idx >= 0 && idx < 4) answerCounts[idx]++;
+        }
+
         List<LeaderboardEntry> board = buildLeaderboard(game);
         ResultsBroadcast broadcast = new ResultsBroadcast(
                 GameStatus.RESULTS,
                 game.currentQuestion().getCorrectIndex(),
-                board
+                board,
+                answerCounts
         );
 
         messaging.convertAndSend("/topic/game/" + game.getCode(), broadcast);
@@ -183,8 +191,11 @@ public class GameService {
     }
 
     private void broadcastLobby(Game game) {
-        List<String> names = game.getPlayers().keySet().stream().sorted().toList();
-        messaging.convertAndSend("/topic/lobby/" + game.getCode(), new LobbyBroadcast(names));
+        List<PlayerInfo> players = game.getPlayers().values().stream()
+                .sorted((a, b) -> a.getName().compareTo(b.getName()))
+                .map(p -> new PlayerInfo(p.getName(), p.getAvatarId()))
+                .toList();
+        messaging.convertAndSend("/topic/lobby/" + game.getCode(), new LobbyBroadcast(players));
     }
 
     private List<LeaderboardEntry> buildLeaderboard(Game game) {
@@ -222,32 +233,29 @@ public class GameService {
     }
 
     /** Some hard-coded sample questions so you can test right away */
-    private List<Question> sampleQuestions() {
-        return List.of(
-                new Question(
-                        "What is the capital of France?",
-                        List.of("Berlin", "Madrid", "Paris", "Rome"),
-                        2, 20),
-                new Question(
-                        "Which planet is closest to the Sun?",
-                        List.of("Venus", "Mercury", "Earth", "Mars"),
-                        1, 20),
-                new Question(
-                        "What is 7 × 8?",
-                        List.of("54", "56", "64", "48"),
-                        1, 15),
-                new Question(
-                        "Who wrote 'Hamlet'?",
-                        List.of("Charles Dickens", "Leo Tolstoy", "William Shakespeare", "Mark Twain"),
-                        2, 20),
-                new Question(
-                        "What does HTTP stand for?",
-                        List.of(
-                                "HyperText Transfer Protocol",
-                                "High Transfer Text Protocol",
-                                "HyperText Transmission Process",
-                                "Hyper Transfer Technology Protocol"),
-                        0, 25)
-        );
+    private List<Question> loadQuestionsFromFile() {
+        try {
+            ObjectMapper mapper = new ObjectMapper();
+
+            var input = getClass().getClassLoader().getResourceAsStream("questions.json");
+            if (input == null) {
+                throw new RuntimeException("questions.json not found");
+            }
+
+            List<QuestionFileDto> dtos =
+                    mapper.readValue(input, new TypeReference<List<QuestionFileDto>>() {});
+
+            return dtos.stream()
+                    .map(d -> new Question(
+                            d.text,
+                            d.options,
+                            d.correctIndex,
+                            d.timeLimitSeconds > 0 ? d.timeLimitSeconds : 15
+                    ))
+                    .toList();
+
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to load questions.json", e);
+        }
     }
 }
