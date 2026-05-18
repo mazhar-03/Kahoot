@@ -71,6 +71,26 @@
         /* Correct answer badge glow */
         .correct-glow { animation: glowPulse 1.5s ease-in-out infinite; }
         @keyframes glowPulse { 0%,100%{box-shadow:0 0 12px #4ade80} 50%{box-shadow:0 0 28px #4ade80,0 0 60px #4ade8066} }
+        /* Add to existing host.html styles */
+        @keyframes petFall {
+            0% { transform: translateY(-150px) rotate(0deg); opacity: 0; }
+            10% { opacity: 1; }
+            90% { opacity: 1; }
+            100% { transform: translateY(110vh) rotate(360deg); opacity: 0; }
+        }
+
+        .falling-pet {
+            position: fixed;
+            top: -150px;
+            width: 110px;
+            height: 110px;
+            border-radius: 50%;
+            object-fit: cover;
+            box-shadow: 0 8px 16px rgba(0,0,0,0.3);
+            border: 4px solid rgba(255, 255, 255, 0.4);
+            z-index: 0; /* Keeps them behind the main content panels */
+            pointer-events: none;
+        }
     </style>
 </head>
 <body class="pb-16">
@@ -386,6 +406,37 @@
         document.getElementById(id).classList.add('active');
     }
     function esc(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+    // Add to the bottom of the existing script in host.html
+
+    const PET_IMAGES = [
+        '/images/ben.png',
+        '/images/domis.png',
+        '/images/loco.jpeg',
+        '/images/poco.jpeg'
+    ];
+
+    function spawnFallingPets() {
+        const container = document.body;
+        const petCount = 8; // How many pets you want falling at once
+
+        for(let i = 0; i < petCount; i++) {
+            const img = document.createElement('img');
+            // Pick a random pet
+            img.src = PET_IMAGES[Math.floor(Math.random() * PET_IMAGES.length)];
+            img.className = 'falling-pet';
+
+            // Randomize starting position, speed, and delay
+            img.style.left = (Math.random() * 100) + 'vw';
+            const duration = 12 + (Math.random() * 20); // Fall takes between 12s and 32s
+            const delay = Math.random() * 15; // Random start delay
+
+            img.style.animation = `petFall ${duration}s linear ${delay}s infinite`;
+            container.appendChild(img);
+        }
+    }
+
+    // Start the animation when the page loads
+    document.addEventListener('DOMContentLoaded', spawnFallingPets);
 </script>
 </body>
 </html>

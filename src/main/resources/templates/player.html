@@ -205,6 +205,20 @@
         showScreen('screenSubmitted');
     }
 
+    const PET_IMAGES = [
+        '/images/ben.png',
+        '/images/domis.png',
+        '/images/loco.jpeg',
+        '/images/poco.jpeg'
+    ];
+
+    const PET_IMAGES = [
+        '/images/ben.png',
+        '/images/domis.png',
+        '/images/loco.jpeg',
+        '/images/poco.jpeg'
+    ];
+
     function onResults(data) {
         const correct  = data.correctIndex;
         const wasRight = lastAnswer === correct;
@@ -212,13 +226,24 @@
         if (me) myScore = me.score;
 
         const badge = document.getElementById('resultBadge');
+
+        // Reset styling just in case it carried over from a previous round
+        badge.style.border = 'none';
+
         if (wasRight) {
-            badge.textContent = '🎉';
-            badge.style.background = '#22c55e';
+            const randomPet = PET_IMAGES[Math.floor(Math.random() * PET_IMAGES.length)];
+
+            // Replace innerHTML with the image and style the container
+            badge.innerHTML = `<img src="${randomPet}" class="w-full h-full object-cover rounded-full" alt="Correct!" />`;
+            badge.style.background = 'transparent';
+            badge.style.border = '4px solid #22c55e'; // Add a nice green ring around the pet
+
             document.getElementById('resultTitle').textContent = 'Correct!';
         } else {
-            badge.textContent = '😬';
+            // Revert back to the wrong emoji configuration
+            badge.innerHTML = '😬';
             badge.style.background = '#ef4444';
+
             document.getElementById('resultTitle').textContent = 'Wrong…';
         }
 
@@ -228,7 +253,6 @@
         document.getElementById('rankBadge').textContent = `${medals[rank]||''}  #${rank} on the leaderboard`;
         showScreen('screenResults');
     }
-
     function onFinished(data) {
         const me   = (data.leaderboard||[]).find(p => p.playerName===PLAYER);
         if (me) myScore = me.score;
