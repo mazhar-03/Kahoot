@@ -18,7 +18,7 @@
         .opt-0 { background:#e21b3c; box-shadow:0 5px 0 #9b1227; }
         .opt-1 { background:#1368ce; box-shadow:0 5px 0 #0d4fa0; }
         .opt-2 { background:#26890c; box-shadow:0 5px 0 #165707; }
-        .opt-3 { background:#ffa602; color:#1f2937; box-shadow:0 5px 0 #b87400; }
+        .opt-3 { background:#ffa602; color:white; box-shadow:0 5px 0 #b87400; }
 
         .timer-arc { stroke-dasharray:188.5; stroke-dashoffset:0; transition: stroke-dashoffset 1s linear; }
 
@@ -38,7 +38,7 @@
         @keyframes sheepBounce { from{transform:translateY(0)} to{transform:translateY(-10px)} }
 
         .btn-action {
-            background:linear-gradient(135deg,#fbbf24,#f59e0b); color:#1f2937; border:none;
+            background:linear-gradient(135deg,#fbbf24,#f59e0b); color:white; border:none;
             border-radius:16px; padding:16px 40px; font-size:1.15rem; font-family:'Nunito',sans-serif;
             font-weight:900; cursor:pointer; box-shadow:0 6px 0 #b45309;
             transition:transform .1s, box-shadow .1s; letter-spacing:.3px;
@@ -51,14 +51,67 @@
         .bar-wrap { display:flex; flex-direction:column; gap:10px; width:100%; max-width:700px; }
         .bar-row { display:flex; align-items:center; gap:12px; }
         .bar-label { width:36px; text-align:center; font-size:1.3rem; flex-shrink:0; }
-        .bar-track { flex:1; background:rgba(255,255,255,0.15); border-radius:99px; height:44px; overflow:hidden; position:relative; }
-        .bar-fill  { height:100%; border-radius:99px; display:flex; align-items:center; padding-left:14px;
-            font-weight:900; font-size:1rem; color:white; transition: width 0.7s cubic-bezier(0.34,1.1,0.64,1); width:0%; }
+        .bar-track {
+            position: relative;
+            flex: 1;
+            background: rgba(255,255,255,0.15);
+            border-radius: 99px;
+            overflow: visible;
+            min-height: 60px;
+        }
+        .bar-text {
+            /* Detach text from the shrinking fill bar */
+            position: absolute;
+            left: 20px;
+            right: 110px; /* Leaves room for the percentage badge */
+            top: 50%;
+            transform: translateY(-50%);
+
+            /* Text alignment and wrapping */
+            text-align: left;
+            white-space: normal;
+            word-break: break-word;
+
+            /* Limit to 2 lines with an ellipsis so it never overflows vertically */
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+
+            z-index: 10;
+        }
+
+        .bar-fill {
+            min-height: 60px;
+            height: 100%;
+            border-radius: 99px;
+            box-sizing: border-box;
+
+            font-weight: 900;
+            font-size: 1rem;
+            color: white;
+
+            transition: width 0.7s cubic-bezier(0.34,1.1,0.64,1);
+            width: 0%;
+
+            /* Removed flex, padding, and overflow properties from here
+               since the text handles its own layout now! */
+        }
         .bar-fill.opt-0 { box-shadow:none; }
         .bar-fill.opt-1 { color:white; }
-        .bar-fill.opt-3 { color:#1f2937; }
-        .bar-pct { position:absolute; right:12px; top:50%; transform:translateY(-50%);
-            font-weight:900; font-size:0.95rem; opacity:.85; }
+        .bar-fill.opt-3 { color:white; }
+        .bar-pct {
+            position: absolute;
+            right: 16px;
+            top: 50%;
+            transform: translateY(-50%);
+            font-weight: 900;
+            font-size: 0.95rem;
+            opacity: 0.85;
+            background: rgba(0,0,0,0.2);
+            padding: 4px 10px;
+            border-radius: 999px;
+        }
         .bar-correct { outline: 3px solid #4ade80; outline-offset:2px; border-radius:99px; }
 
         /* Countdown ring for auto-transition */
@@ -120,7 +173,7 @@
     <div class="lobby-sheep text-6xl mb-4">🐑</div>
     <h1 class="fredoka text-3xl sm:text-4xl mb-2">Waiting for the flock…</h1>
     <p class="text-purple-200 font-bold mb-8 text-sm sm:text-base">Tell everyone to join and enter the PIN</p>
-    <div class="flex flex-wrap gap-3 justify-center max-w-2xl mb-10 min-h-[56px]" id="playerGrid">
+    <div class="flex flex-wrap gap-3 justify-center max-w-4xl mb-10 min-h-[56px]" id="playerGrid">
         <div class="text-purple-300 italic font-bold text-sm">No players yet…</div>
     </div>
     <button class="btn-action" id="startBtn" onclick="startGame()" disabled>Start the Game! </button>
@@ -253,13 +306,19 @@
         document.getElementById('totalPlayers').textContent = players.length;
 
         const grid = document.getElementById('playerGrid');
-        grid.innerHTML = !players.length
-            ? '<div class="text-purple-300 italic font-bold text-sm">No players yet…</div>'
-            : players.map(p => `
-        <div class="player-chip bg-white bg-opacity-15 rounded-2xl px-3 py-2 flex items-center gap-2">
-          <div class="w-8 h-7">${AVATAR_MAP[p.avatarId||'white']||AVATAR_MAP.white}</div>
-          <span class="font-black text-sm">${esc(p.name)}</span>
-        </div>`).join('');
+        grid.innerHTML = players.map(p => `
+        <div class="player-chip bg-white bg-opacity-20 rounded-3xl px-5 py-4 flex items-center gap-4 shadow-lg">
+
+            <div class="w-16 h-14">
+                ${AVATAR_MAP[p.avatarId||'white']||AVATAR_MAP.white}
+            </div>
+
+            <span class="font-black text-xl sm:text-2xl">
+                ${esc(p.name)}
+            </span>
+
+        </div>
+        `).join('');
         document.getElementById('startBtn').disabled = !players.length;
     }
 
@@ -275,6 +334,8 @@
 
     // ── Question screen ───────────────────────────────────────────────────
     function showQuestion(data) {
+        let answered = 0;
+        let total = totalPlayerCount;
         clearInterval(cdInterval);
         showScreen('screenQuestion');
         currentOptions = data.options;
@@ -283,11 +344,17 @@
         document.getElementById('answersCount').textContent  = '0';
         document.getElementById('totalPlayers').textContent  = totalPlayerCount;
 
-        const icons = ['▲','●','■','✦'], cls = ['opt-0','opt-1','opt-2','opt-3'];
+        const icons = ['▲','●','■','✦'];
+        const cls = ['opt-0','opt-1','opt-2','opt-3'];
+
         document.getElementById('optionsGrid').innerHTML = data.options.map((opt,i)=>
-            `<div class="${cls[i]} rounded-2xl px-4 py-5 font-black text-base sm:text-lg flex items-center gap-3">
-       <span class="text-2xl">${icons[i]}</span>${esc(opt)}
-     </div>`).join('');
+            `
+        <div class="${cls[i]} rounded-3xl px-6 py-10 font-black text-2xl sm:text-3xl flex items-center gap-5">
+            <span class="text-4xl">${icons[i]}</span>
+            ${esc(opt)}
+        </div>
+
+`).join('');
         startTimer(data.timeLimitSeconds);
     }
 
@@ -332,7 +399,7 @@
         <div class="bar-label">${icons[i]}</div>
         <div class="bar-track ${isRight ? 'bar-correct correct-glow' : ''}">
           <div class="bar-fill ${bgCls[i]}" id="bar${i}" style="width:0%;background:${optColors[i]}">
-            ${esc(opt)}
+            <span class="bar-text">${esc(opt)}</span>
           </div>
           <div class="bar-pct">${counts[i]} (${pct}%)</div>
         </div>
@@ -410,8 +477,8 @@
 
     const PET_IMAGES = [
         '/images/ben.png',
-        '/images/domis.png',
         '/images/loco.jpeg',
+        '/images/domis.png',
         '/images/poco.jpeg'
     ];
 
@@ -427,8 +494,8 @@
 
             // Randomize starting position, speed, and delay
             img.style.left = (Math.random() * 100) + 'vw';
-            const duration = 12 + (Math.random() * 20); // Fall takes between 12s and 32s
-            const delay = Math.random() * 15; // Random start delay
+            const duration = 6 + (Math.random() * 4);
+            const delay = Math.random() * 5;
 
             img.style.animation = `petFall ${duration}s linear ${delay}s infinite`;
             container.appendChild(img);

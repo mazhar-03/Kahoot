@@ -1,37 +1,442 @@
 [
   {
-    "text": "What is the capital of France?",
-    "options": ["Berlin", "Madrid", "Paris", "Rome"],
-    "correctIndex": 2,
-    "timeLimitSeconds": 15
-  },
-  {
-    "text": "Which planet is closest to the Sun?",
-    "options": ["Venus", "Mercury", "Earth", "Mars"],
-    "correctIndex": 1,
-    "timeLimitSeconds": 15
-  },
-  {
-    "text": "What is 7 × 8?",
-    "options": ["54", "56", "64", "48"],
-    "correctIndex": 1,
-    "timeLimitSeconds": 15
-  },
-  {
-    "text": "Who wrote 'Hamlet'?",
-    "options": ["Charles Dickens", "Leo Tolstoy", "William Shakespeare", "Mark Twain"],
-    "correctIndex": 2,
-    "timeLimitSeconds": 15
-  },
-  {
-    "text": "What does HTTP stand for?",
+    "text": "Which sentence uses “pivot” correctly?",
     "options": [
-      "HyperText Transfer Protocol",
-      "High Transfer Text Protocol",
-      "HyperText Transmission Process",
-      "Hyper Transfer Technology Protocol"
+      "The manager pivoted an email yesterday.",
+      "After losing investors, the startup pivoted to online services.",
+      "We pivoted the deadline under the table.",
+      "I pivoted my lunch at 2 PM."
+    ],
+    "correctIndex": 1,
+    "timeLimitSeconds": 20
+  },
+  {
+    "text": "Which sentence uses “bandwidth” correctly?",
+    "options": [
+      "We need to clean the bandwidth tomorrow.",
+      "She bought new bandwidth for the office kitchen.",
+      "I can’t take another project — I don’t have the bandwidth.",
+      "My bandwidth is sitting in a meeting room."
+    ],
+    "correctIndex": 2,
+    "timeLimitSeconds": 20
+  },
+  {
+    "text": "Which sentence uses “deep dive” correctly?",
+    "options": [
+      "Let’s deep dive the coffee machine.",
+      "We need a deep dive into customer complaints.",
+      "He deep-dived the printer into the office.",
+      "I deep dive every morning at 8:00."
+    ],
+    "correctIndex": 1,
+    "timeLimitSeconds": 20
+  },
+  {
+    "text": "Which sentence uses “touch base” naturally?",
+    "options": [
+      "She touched base into the project.",
+      "We touched the base of the deadline.",
+      "I touched base the client aggressively.",
+      "Let’s touch base next week after the presentation."
+    ],
+    "correctIndex": 3,
+    "timeLimitSeconds": 20
+  },
+  {
+    "text": "Which sentence uses “low-hanging fruit” correctly?",
+    "options": [
+      "The low-hanging fruit deleted the database.",
+      "Let’s focus on low-hanging fruit before bigger changes.",
+      "We low-hanged the client yesterday.",
+      "He bought low-hanging fruit for accounting."
+    ],
+    "correctIndex": 1,
+    "timeLimitSeconds": 20
+  },
+  {
+    "text": "What does “move the needle” mean?",
+    "options": [
+      "delay a project",
+      "avoid responsibility",
+      "make a noticeable impact",
+      "move something physically"
+    ],
+    "correctIndex": 2,
+    "timeLimitSeconds": 20
+  },
+  {
+    "text": "Which sentence sounds MOST like corporate jargon?",
+    "options": [
+      "The client called twice.",
+      "Let’s finish the report today.",
+      "We need stronger alignment and scalable synergy.",
+      "I’ll answer the email later."
+    ],
+    "correctIndex": 2,
+    "timeLimitSeconds": 20
+  },
+  {
+    "text": "Which sentence uses “throw someone under the bus” correctly?",
+    "options": [
+      "The manager physically pushed someone under a bus.",
+      "The intern repaired the bus quickly.",
+      "The client travelled by bus yesterday.",
+      "The manager threw the intern under the bus during the meeting."
+    ],
+    "correctIndex": 3,
+    "timeLimitSeconds": 20
+  },
+  {
+    "text": "Which sentence uses “streamline” correctly?",
+    "options": [
+      "I streamlined my sandwich at lunch.",
+      "She streamed the line yesterday.",
+      "We should streamline the hiring process.",
+      "Let’s streamline the office coffee."
+    ],
+    "correctIndex": 2,
+    "timeLimitSeconds": 20
+  },
+  {
+    "text": "Which sentence uses “buy-in” correctly?",
+    "options": [
+      "I bought in three laptops yesterday.",
+      "We still need buy-in from the leadership team.",
+      "The buy-in is sitting near reception.",
+      "Let’s buy-in the meeting room."
+    ],
+    "correctIndex": 1,
+    "timeLimitSeconds": 20
+  },
+  {
+    "text": "Which sentence sounds MOST natural in modern office English?",
+    "options": [
+      "My productivity ecosystem has collapsed emotionally.",
+      "I am drowning inside administrative devastation.",
+      "I’m swamped today, can we circle back tomorrow?",
+      "The workflow consumed my internal spirit."
+    ],
+    "correctIndex": 2,
+    "timeLimitSeconds": 20
+  },
+  {
+    "text": "Which sentence uses “game changer” correctly?",
+    "options": [
+      "We changed the game into accounting.",
+      "Please game the changes carefully.",
+      "AI tools could be a game changer for small businesses.",
+      "The game changer repaired the printer."
+    ],
+    "correctIndex": 2,
+    "timeLimitSeconds": 20
+  },
+  {
+    "text": "Which sentence uses “elephant in the room” correctly?",
+    "options": [
+      "We need to feed the office elephant.",
+      "There’s an elephant in conference room B.",
+      "The elephant in the room is that nobody trusts the CEO.",
+      "The elephant scheduled a Zoom meeting."
+    ],
+    "correctIndex": 2,
+    "timeLimitSeconds": 20
+  },
+  {
+    "text": "Which sentence uses “synergy” correctly?",
+    "options": [
+      "Better synergy between departments could improve communication.",
+      "The printer needs more synergy with the coffee machine.",
+      "I synergy the client yesterday.",
+      "We need three synergys before lunch."
     ],
     "correctIndex": 0,
-    "timeLimitSeconds": 15
+    "timeLimitSeconds": 20
+  },
+  {
+    "text": "Which sentence uses “put out fires” correctly?",
+    "options": [
+      "The office was literally on fire all day.",
+      "We burned the reports accidentally.",
+      "I spent the whole day putting out fires instead of working normally.",
+      "The manager fired the employees twice."
+    ],
+    "correctIndex": 2,
+    "timeLimitSeconds": 20
+  },
+  {
+    "text": "Which sentence sounds MOST professional?",
+    "options": [
+      "Throw the file into my digital direction.",
+      "Yo, send me that thing ASAP bro.",
+      "Transfer the electronic object immediately.",
+      "Could you send me the updated version by EOD?"
+    ],
+    "correctIndex": 3,
+    "timeLimitSeconds": 20
+  },
+  {
+    "text": "Which sentence uses “scalable” correctly?",
+    "options": [
+      "She bought a scalable yesterday.",
+      "We need to scalable the printer.",
+      "The scalable forgot his laptop.",
+      "The business model is scalable and could grow internationally."
+    ],
+    "correctIndex": 3,
+    "timeLimitSeconds": 20
+  },
+  {
+    "text": "Which sentence sounds MOST like a fake LinkedIn influencer?",
+    "options": [
+      "The client approved the budget.",
+      "Success starts when you leverage your morning mindset.",
+      "Please update the spreadsheet.",
+      "The meeting starts at 10:00."
+    ],
+    "correctIndex": 1,
+    "timeLimitSeconds": 20
+  },
+  {
+    "text": "Which sentence uses “raise the bar” correctly?",
+    "options": [
+      "The manager physically lifted a bar in the office.",
+      "We raised the chocolate bar yesterday.",
+      "The new manager really raised the bar for the whole team.",
+      "The bar called another meeting."
+    ],
+    "correctIndex": 2,
+    "timeLimitSeconds": 20
+  },
+  {
+    "text": "Which sentence sounds LEAST natural?",
+    "options": [
+      "We need more time for this project.",
+      "Let’s discuss it tomorrow.",
+      "I synergised the scalable momentum solutions into the bandwidth.",
+      "The client requested changes."
+    ],
+    "correctIndex": 2,
+    "timeLimitSeconds": 20
+  },
+  {
+    "text": "If someone says “I don’t have the bandwidth,” they mean:",
+    "options": [
+      "they forgot the password",
+      "they are too busy",
+      "their internet is broken",
+      "they want a promotion"
+    ],
+    "correctIndex": 1,
+    "timeLimitSeconds": 20
+  },
+  {
+    "text": "“Let’s circle back tomorrow” means:",
+    "options": [
+      "let’s start from zero",
+      "let’s go in circles",
+      "let’s discuss it later",
+      "let’s cancel the project"
+    ],
+    "correctIndex": 2,
+    "timeLimitSeconds": 20
+  },
+  {
+    "text": "Which expression means “solve urgent unexpected problems”?",
+    "options": [
+      "raise the roof",
+      "touch grass",
+      "put out fires",
+      "move the goalposts"
+    ],
+    "correctIndex": 2,
+    "timeLimitSeconds": 20
+  },
+  {
+    "text": "“Low-hanging fruit” refers to:",
+    "options": [
+      "dangerous risks",
+      "difficult negotiations",
+      "easy quick tasks/results",
+      "expensive projects"
+    ],
+    "correctIndex": 2,
+    "timeLimitSeconds": 20
+  },
+  {
+    "text": "Which sentence uses “circle back” correctly?",
+    "options": [
+      "Let’s circle back after everyone reviews the proposal.",
+      "We circled the office back yesterday.",
+      "She circled back the printer into storage.",
+      "The client circled around the deadline."
+    ],
+    "correctIndex": 0,
+    "timeLimitSeconds": 20
+  },
+  {
+    "text": "Which sentence uses “raise the bar” correctly?",
+    "options": [
+      "We raised the bar into the meeting room.",
+      "The new manager really raised the bar for the sales team.",
+      "She bought a bar after work.",
+      "The company raised bars every Friday."
+    ],
+    "correctIndex": 1,
+    "timeLimitSeconds": 20
+  },
+  {
+    "text": "Which sentence sounds MOST like fake startup jargon?",
+    "options": [
+      "We need to leverage cross-functional scalable synergy moving forward.",
+      "The report is attached below.",
+      "The client approved the budget.",
+      "I’ll answer the email tomorrow."
+    ],
+    "correctIndex": 0,
+    "timeLimitSeconds": 20
+  },
+  {
+    "text": "Which sentence uses “disruptor” correctly?",
+    "options": [
+      "Small startups are becoming major market disruptors.",
+      "The disruptor answered the phone.",
+      "We disrupted the coffee machine yesterday.",
+      "She disruptored the presentation."
+    ],
+    "correctIndex": 0,
+    "timeLimitSeconds": 20
+  },
+  {
+    "text": "Which sentence uses “deep dive” naturally?",
+    "options": [
+      "Let’s do a deep dive into customer behaviour.",
+      "I deep-dived the spreadsheet yesterday.",
+      "The deep dive starts at reception.",
+      "She dived deeply into accounting physically."
+    ],
+    "correctIndex": 0,
+    "timeLimitSeconds": 20
+  },
+  {
+    "text": "Which sentence uses “touch base” correctly?",
+    "options": [
+      "Let’s touch base after the client meeting tomorrow.",
+      "We touched the office base aggressively.",
+      "The client based the touch yesterday.",
+      "She touched base into the printer."
+    ],
+    "correctIndex": 0,
+    "timeLimitSeconds": 20
+  },
+  {
+    "text": "Which sentence uses “move the needle” correctly?",
+    "options": [
+      "The new strategy really moved the needle in sales.",
+      "We moved the needle into storage.",
+      "She needled the movement yesterday.",
+      "The client bought a needle online."
+    ],
+    "correctIndex": 0,
+    "timeLimitSeconds": 20
+  },
+  {
+    "text": "Which sentence uses “pain point” correctly?",
+    "options": [
+      "Slow delivery times are our biggest pain point.",
+      "The pain point repaired the Wi-Fi.",
+      "We pointed painfully at the client.",
+      "The office pain was under the table."
+    ],
+    "correctIndex": 0,
+    "timeLimitSeconds": 20
+  },
+  {
+    "text": "What does “buy-in” mean?",
+    "options": [
+      "agreement and support from people",
+      "buying office equipment",
+      "entering a building",
+      "reducing company costs"
+    ],
+    "correctIndex": 0,
+    "timeLimitSeconds": 20
+  },
+  {
+    "text": "What does “synergy” mean?",
+    "options": [
+      "competition between departments",
+      "cooperation producing better results together",
+      "a financial crisis",
+      "customer complaints"
+    ],
+    "correctIndex": 1,
+    "timeLimitSeconds": 20
+  },
+  {
+    "text": "What does “streamline” mean?",
+    "options": [
+      "simplify and improve efficiency",
+      "create more meetings",
+      "hire more managers",
+      "delay a process"
+    ],
+    "correctIndex": 0,
+    "timeLimitSeconds": 20
+  },
+  {
+    "text": "What does “pain point” mean?",
+    "options": [
+      "a company celebration",
+      "a difficult employee",
+      "a recurring problem or frustration",
+      "a business opportunity"
+    ],
+    "correctIndex": 2,
+    "timeLimitSeconds": 20
+  },
+  {
+    "text": "What does “scalable” mean?",
+    "options": [
+      "very expensive",
+      "able to grow easily without major problems",
+      "impossible to manage",
+      "related to accounting"
+    ],
+    "correctIndex": 1,
+    "timeLimitSeconds": 20
+  },
+  {
+    "text": "What does “game changer” mean?",
+    "options": [
+      "a small improvement",
+      "a boring strategy",
+      "a revolutionary improvement",
+      "a financial report"
+    ],
+    "correctIndex": 2,
+    "timeLimitSeconds": 20
+  },
+  {
+    "text": "What does “touch base” mean?",
+    "options": [
+      "communicate briefly/check in",
+      "cancel a meeting",
+      "avoid communication",
+      "change direction completely"
+    ],
+    "correctIndex": 0,
+    "timeLimitSeconds": 20
+  },
+  {
+    "text": "What does “raise the bar” mean?",
+    "options": [
+      "reduce expectations",
+      "increase standards",
+      "start a new company",
+      "solve technical problems"
+    ],
+    "correctIndex": 1,
+    "timeLimitSeconds": 20
   }
 ]
