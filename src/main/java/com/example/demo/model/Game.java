@@ -13,6 +13,7 @@ public class Game {
     private int currentQuestionIndex = -1;
     private GameStatus status = GameStatus.WAITING;
     private long questionStartTime;
+    private Map<String, Integer> previousRanks = new ConcurrentHashMap<>();
 
     public Game(String code) { this.code = code; }
 
@@ -26,6 +27,8 @@ public class Game {
     public void        setStatus(GameStatus s)   { this.status = s; }
     public long        getQuestionStartTime()    { return questionStartTime; }
     public void        setQuestionStartTime(long t) { this.questionStartTime = t; }
+    public Map<String, Integer> getPreviousRanks() { return previousRanks; }
+    public void setPreviousRanks(Map<String, Integer> ranks) { this.previousRanks = new ConcurrentHashMap<>(ranks); }
 
     public Question currentQuestion() {
         if (currentQuestionIndex < 0 || currentQuestionIndex >= questions.size()) return null;
@@ -41,6 +44,14 @@ public class Game {
 
     public void resetAnswerFlags() {
         players.values().forEach(Player::resetAnswerFlag);
+    }
+
+    public int getAnsweredCount() {
+        return (int) players.values().stream().filter(Player::isAnsweredCurrentQuestion).count();
+    }
+
+    public int getTotalScore() {
+        return players.values().stream().mapToInt(Player::getScore).sum();
     }
 
     public boolean allPlayersAnswered() {
