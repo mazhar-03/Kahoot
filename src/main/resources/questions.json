@@ -1,35 +1,260 @@
 [
   {
-    "text": "Which sentence uses “pivot” correctly?",
-    "options": [
-      "The manager pivoted an email yesterday.",
-      "After losing investors, the startup pivoted to online services.",
-      "We pivoted the deadline under the table.",
-      "I pivoted my lunch at 2 PM."
-    ],
+    "text": "Their friendship began to feel increasingly ___: they only contacted each other when they needed something.",
+    "options": ["professional", "supportive", "transactional", "distant"],
+    "correctIndex": 2,
+    "timeLimitSeconds": 20
+  },
+  {
+    "text": "Which situation could best be described as precarious?",
+    "options": ["A company depending on one client for almost all its income.", "A company growing slowly but steadily.", "A company hiring several new employees.", "A company entering a new market."],
+    "correctIndex": 0,
+    "timeLimitSeconds": 20
+  },
+  {
+    "text": "Which sentence sounds natural?",
+    "options": ["Her remuneration increased the project.", "The job offers excellent remuneration and benefits.", "She received a remuneration promotion.", "They remuneration employees monthly."],
     "correctIndex": 1,
     "timeLimitSeconds": 20
   },
   {
-    "text": "Which sentence uses “touch base” naturally?",
-    "options": [
-      "She touched base into the project.",
-      "We touched the base of the deadline.",
-      "I touched base the client aggressively.",
-      "Let’s touch base next week after the presentation."
-    ],
+    "text": "Anna is a regional director; Tom is a department manager. Anna ___ Tom.",
+    "options": ["exceeds", "overtakes", "supersedes", "outranks"],
     "correctIndex": 3,
     "timeLimitSeconds": 20
   },
   {
-    "text": "Which sentence uses “low-hanging fruit” correctly?",
-    "options": [
-      "The low-hanging fruit deleted the database.",
-      "Let’s focus on low-hanging fruit before bigger changes.",
-      "We low-hanged the client yesterday.",
-      "He bought low-hanging fruit for accounting."
-    ],
+    "text": "Which person is a psychiatrist?",
+    "options": ["A medical doctor specializing in mental health.", "A researcher studying human behavior.", "A counselor who gives career advice.", "A doctor specializing in the nervous system."],
+    "correctIndex": 0,
+    "timeLimitSeconds": 20
+  },
+  {
+    "text": "After becoming famous, the writer became increasingly reclusive. She...",
+    "options": ["became more ambitious.", "avoided other people and public attention.", "stopped writing professionally.", "became difficult to work with."],
     "correctIndex": 1,
+    "timeLimitSeconds": 20
+  },
+  {
+    "text": "Which sentence is correct?",
+    "options": ["She aligned herself to the campaign.", "She aligned the campaign herself.", "She aligned herself with the campaign's values.", "She aligned herself into the campaign."],
+    "correctIndex": 2,
+    "timeLimitSeconds": 20
+  },
+  {
+    "text": "\"Better late than never\" is an example of...",
+    "options": ["a caveat", "a warning", "an excuse", "an adage"],
+    "correctIndex": 3,
+    "timeLimitSeconds": 20
+  },
+  {
+    "text": "Which collocation is correct?",
+    "options": ["make a valuable contribution", "perform a valuable contribution", "achieve a valuable contribution", "create a valuable contribution"],
+    "correctIndex": 0,
+    "timeLimitSeconds": 20
+  },
+  {
+    "text": "\"She really made her mark on the industry.\" This means she...",
+    "options": ["started working in it.", "became influential in it.", "earned a lot of money from it.", "became its most senior employee."],
+    "correctIndex": 1,
+    "timeLimitSeconds": 20
+  },
+  {
+    "text": "\"She's inexperienced, but she has what it takes.\" This means...",
+    "options": ["she has already succeeded.", "she has enough experience.", "she has the qualities needed to succeed.", "she has completed all the requirements."],
+    "correctIndex": 2,
+    "timeLimitSeconds": 20
+  },
+  {
+    "text": "After months of planning, they finally managed to ___ the new business ___.",
+    "options": ["make / its mark", "put / to good effect", "do / for themselves", "get / off the ground"],
+    "correctIndex": 3,
+    "timeLimitSeconds": 20
+  },
+  {
+    "text": "\"He's done very well for himself.\" This most likely means...",
+    "options": ["he's become successful.", "he prefers working alone.", "he's become more confident.", "he does everything himself."],
+    "correctIndex": 0,
+    "timeLimitSeconds": 20
+  },
+  {
+    "text": "\"We've improved a lot, but we still have a long way to go.\" This means...",
+    "options": ["we're moving too slowly.", "we still need to make a lot of progress.", "we should change our goal.", "we're almost finished."],
+    "correctIndex": 1,
+    "timeLimitSeconds": 20
+  },
+  {
+    "text": "When would you say \"better late than never\"?",
+    "options": ["Someone finishes early.", "Someone decides not to do something.", "Someone finally does something they should have done earlier.", "Someone does something at exactly the right time."],
+    "correctIndex": 2,
+    "timeLimitSeconds": 20
+  },
+  {
+    "text": "\"She put her experience to good effect during the negotiations.\" She...",
+    "options": ["talked about her experience.", "gained useful experience.", "shared her experience.", "used her experience successfully."],
+    "correctIndex": 3,
+    "timeLimitSeconds": 20
+  },
+  {
+    "text": "Which sentence is natural?",
+    "options": ["I wished him the best of luck with his interview.", "I wished him best luck about his interview.", "I gave him the best luck with his interview.", "I wished his interview the best of luck."],
+    "correctIndex": 0,
+    "timeLimitSeconds": 20
+  },
+  {
+    "text": "Which could trundle down a road?",
+    "options": ["A racing motorcycle moving at 200 km/h.", "A slow, heavy old truck.", "A bird flying overhead.", "A runner sprinting toward the finish."],
+    "correctIndex": 1,
+    "timeLimitSeconds": 20
+  },
+  {
+    "text": "\"We were lumbered with an outdated system.\" This means...",
+    "options": ["we chose to keep it.", "we repaired it ourselves.", "we were stuck with it as an unwanted burden.", "we replaced it immediately."],
+    "correctIndex": 2,
+    "timeLimitSeconds": 20
+  },
+  {
+    "text": "A technology becomes obsolete when...",
+    "options": ["it becomes more expensive.", "it needs repairing.", "fewer people buy it.", "newer technology makes it unnecessary."],
+    "correctIndex": 3,
+    "timeLimitSeconds": 20
+  },
+  {
+    "text": "\"Can I tag along?\" means...",
+    "options": ["Can I come with you?", "Can I meet you later?", "Can I organize it?", "Can I take your place?"],
+    "correctIndex": 0,
+    "timeLimitSeconds": 20
+  },
+  {
+    "text": "They didn't lease the machine. They bought it ___.",
+    "options": ["directly", "outright", "instantly", "completely"],
+    "correctIndex": 1,
+    "timeLimitSeconds": 20
+  },
+  {
+    "text": "Giving small businesses access to cheap technology could...",
+    "options": ["eliminate the market.", "increase sunk costs.", "level the playing field.", "create a white elephant."],
+    "correctIndex": 2,
+    "timeLimitSeconds": 20
+  },
+  {
+    "text": "\"Apparently, James is leaving the company.\" The speaker means...",
+    "options": ["James definitely told me himself.", "I want James to leave.", "James has already left.", "I've heard/it seems that James is leaving."],
+    "correctIndex": 3,
+    "timeLimitSeconds": 20
+  },
+  {
+    "text": "\"Crucially, the new system costs 40% less.\" Crucially is closest to...",
+    "options": ["most importantly", "unexpectedly", "fortunately", "strangely"],
+    "correctIndex": 0,
+    "timeLimitSeconds": 20
+  },
+  {
+    "text": "\"This part is broken. We'll swap it out.\" They will...",
+    "options": ["repair it.", "replace it with another one.", "clean it.", "switch it off."],
+    "correctIndex": 1,
+    "timeLimitSeconds": 20
+  },
+  {
+    "text": "The motor burned out after running continuously for days. It...",
+    "options": ["became outdated.", "became too expensive to use.", "stopped working because of excessive use.", "was deliberately destroyed."],
+    "correctIndex": 2,
+    "timeLimitSeconds": 20
+  },
+  {
+    "text": "\"Frankly, I think this is a terrible idea.\" Frankly shows that the speaker is...",
+    "options": ["uncertain.", "joking.", "trying to be polite.", "speaking honestly and directly."],
+    "correctIndex": 3,
+    "timeLimitSeconds": 20
+  },
+  {
+    "text": "A: \"I can't come tonight. I have to work.\" B: \"Fair enough.\" B means...",
+    "options": ["That's reasonable.", "I don't believe you.", "That's unfair.", "I completely agree with you."],
+    "correctIndex": 0,
+    "timeLimitSeconds": 20
+  },
+  {
+    "text": "A company buys an extremely expensive machine. Nobody uses it, but it costs a lot to maintain. It is...",
+    "options": ["a sunk cost", "a white elephant", "a great leveler", "a feedback loop"],
+    "correctIndex": 1,
+    "timeLimitSeconds": 20
+  },
+  {
+    "text": "A large company hoovered up several smaller competitors. It...",
+    "options": ["competed with them.", "copied their products.", "acquired many of them quickly.", "forced them to lower their prices."],
+    "correctIndex": 2,
+    "timeLimitSeconds": 20
+  },
+  {
+    "text": "Which is an example of sunk costs?",
+    "options": ["Money you may spend next year.", "Money saved for an emergency.", "Money you can get back by selling an asset.", "EUR 100,000 already spent on a failed project that cannot be recovered."],
+    "correctIndex": 3,
+    "timeLimitSeconds": 20
+  },
+  {
+    "text": "Buying several different currencies can be a hedge against...",
+    "options": ["the risk of one currency losing value.", "earning too much money.", "having too many customers.", "paying something outright."],
+    "correctIndex": 0,
+    "timeLimitSeconds": 20
+  },
+  {
+    "text": "In a feedback loop...",
+    "options": ["the same mistake is repeated forever.", "results provide information that affects what happens next.", "employees receive an annual review.", "customers complain repeatedly."],
+    "correctIndex": 1,
+    "timeLimitSeconds": 20
+  },
+  {
+    "text": "Something described as a great leveler...",
+    "options": ["creates a hierarchy.", "rewards successful people.", "reduces differences in status or advantage.", "makes everyone perform equally well."],
+    "correctIndex": 2,
+    "timeLimitSeconds": 20
+  },
+  {
+    "text": "\"They replaced the product without a quibble.\" They replaced it...",
+    "options": ["after a long discussion.", "reluctantly.", "after asking for more money.", "without arguing or complaining."],
+    "correctIndex": 3,
+    "timeLimitSeconds": 20
+  },
+  {
+    "text": "\"The software does most of the heavy lifting.\" This means it...",
+    "options": ["does most of the difficult/substantial work.", "controls every decision.", "performs physical work.", "works more slowly than humans."],
+    "correctIndex": 0,
+    "timeLimitSeconds": 20
+  },
+  {
+    "text": "Which is an example of capital outlay?",
+    "options": ["A monthly electricity bill.", "EUR 300,000 spent on new factory machinery.", "Employees' monthly salaries.", "A small advertising bill."],
+    "correctIndex": 1,
+    "timeLimitSeconds": 20
+  },
+  {
+    "text": "\"The old system was superseded by a newer version.\" It was...",
+    "options": ["repaired.", "improved slightly.", "replaced.", "temporarily removed."],
+    "correctIndex": 2,
+    "timeLimitSeconds": 20
+  },
+  {
+    "text": "Which statement is the most candid?",
+    "options": ["\"There are several issues we're currently reviewing.\"", "\"I can't comment at this stage.\"", "\"We're confident about the future.\"", "\"We made a serious mistake, and I underestimated the risk.\""],
+    "correctIndex": 3,
+    "timeLimitSeconds": 20
+  },
+  {
+    "text": "\"The plan looks excellent, but there's one caveat.\" What comes next?",
+    "options": ["A limitation or warning.", "Another advantage.", "A completely different topic.", "A compliment."],
+    "correctIndex": 0,
+    "timeLimitSeconds": 20
+  },
+  {
+    "text": "Company A outperformed Company B last year. Company A...",
+    "options": ["replaced Company B.", "achieved better results.", "was more senior than Company B.", "bought Company B."],
+    "correctIndex": 1,
+    "timeLimitSeconds": 20
+  },
+  {
+    "text": "The interview looked spontaneous, but it had actually been stage-managed. It was...",
+    "options": ["badly organized.", "completely improvised.", "carefully controlled to create a particular impression.", "managed by several different departments."],
+    "correctIndex": 2,
     "timeLimitSeconds": 20
   }
 ]
