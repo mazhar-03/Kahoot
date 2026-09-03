@@ -69,6 +69,20 @@
         .dot:nth-child(2){animation-delay:.2s}
         .dot:nth-child(3){animation-delay:.4s}
         @keyframes dotBounce { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-8px)} }
+        .answer-meta { background:rgba(255,255,255,.16); border:1px solid rgba(255,255,255,.16); border-radius:999px; padding:8px 14px; font-weight:900; }
+        .review-card { background:rgba(255,255,255,.12); border:1px solid rgba(255,255,255,.16); border-radius:18px; padding:16px; }
+        .review-answer { border-radius:14px; padding:10px 12px; margin-top:8px; font-weight:900; }
+        .review-correct { background:rgba(34,197,94,.22); border:2px solid #22c55e; }
+        .review-wrong { background:rgba(239,68,68,.22); border:2px solid #ef4444; }
+        .question-result { width:100%; max-width:420px; background:rgba(255,255,255,.14); border:1px solid rgba(255,255,255,.18); border-radius:22px; padding:18px; box-shadow:0 18px 40px rgba(0,0,0,.18); }
+        .mini-stat { background:rgba(255,255,255,.12); border-radius:14px; padding:10px 12px; }
+        .rank-move { display:inline-flex; align-items:center; gap:6px; border-radius:999px; padding:5px 10px; background:rgba(255,255,255,.15); font-weight:900; animation: deltaFade 2.4s ease forwards; }
+        .rank-up { color:#86efac; }
+        .rank-down { color:#fca5a5; }
+        @keyframes deltaFade { 0%,65%{opacity:1} 100%{opacity:0} }
+        @media (max-width: 640px) {
+            .screen.active { padding:18px 12px 76px; }
+        }
     </style>
 </head>
 <body class="pb-14">
@@ -88,22 +102,14 @@
 
 <!-- ── ANSWER SCREEN ─────────────────────────────────────────────────────── -->
 <div class="screen" id="screenAnswer">
-    <div class="w-full h-full flex items-center justify-center px-4">
-        <div class="grid grid-cols-2 grid-rows-2 gap-4 w-full max-w-2xl h-[60vh]">
-
-            <button class="ans-btn ans-0" onclick="submitAnswer(0)">
-                <span class="text-5xl">▲</span>
-            </button>
-            <button class="ans-btn ans-1" onclick="submitAnswer(1)">
-                <span class="text-5xl">●</span>
-            </button>
-            <button class="ans-btn ans-2" onclick="submitAnswer(2)">
-                <span class="text-5xl">■</span>
-            </button>
-            <button class="ans-btn ans-3" onclick="submitAnswer(3)">
-                <span class="text-5xl">✦</span>
-            </button>
+    <div class="w-full max-w-2xl flex flex-col items-center gap-4">
+        <div class="answer-meta text-purple-100">
+            <span id="playerAnswersCount">0</span> / <span id="playerTotalPlayers">0</span> people answered
         </div>
+        <div class="bg-white text-gray-800 rounded-2xl px-5 py-4 text-center w-full shadow-xl">
+            <div class="font-black text-lg sm:text-xl leading-snug" id="questionText">Question loading...</div>
+        </div>
+        <div class="grid grid-cols-2 gap-4 w-full h-[52vh]" id="answerGrid"></div>
     </div>
 </div>
 
@@ -115,14 +121,37 @@
         Waiting for others
         <span class="dot">.</span><span class="dot">.</span><span class="dot">.</span>
     </p>
+    <div class="answer-meta mt-5 text-purple-100">
+        <span id="submittedAnswersCount">0</span> / <span id="submittedTotalPlayers">0</span> people answered
+    </div>
 </div>
 
 <!-- ── RESULTS SCREEN ────────────────────────────────────────────────────── -->
 <div class="screen" id="screenResults">
-    <div id="resultBadge" class="w-24 h-24 rounded-full flex items-center justify-center text-5xl pop-in mb-6 shadow-2xl">🎉</div>
-    <h2 class="fredoka text-3xl sm:text-4xl mb-2" id="resultTitle">Correct!</h2>
-    <div class="text-purple-200 font-bold text-base mb-2" id="scoreDisplay">0 pts total</div>
-    <div class="bg-white bg-opacity-15 rounded-2xl px-5 py-3 font-black text-base" id="rankBadge"># 1</div>
+    <div class="question-result text-center pop-in">
+        <div id="resultBadge" class="w-20 h-20 rounded-full flex items-center justify-center text-5xl mx-auto mb-4 shadow-2xl">🎉</div>
+        <h2 class="fredoka text-3xl sm:text-4xl mb-1" id="resultTitle">Correct!</h2>
+        <div class="fredoka text-4xl text-yellow-300 mb-4" id="pointsDisplay">+0 pts</div>
+        <div class="grid grid-cols-2 gap-2 text-left mb-3">
+            <div class="mini-stat">
+                <div class="text-purple-200 text-xs font-black uppercase tracking-widest">Total</div>
+                <div class="font-black text-xl" id="scoreDisplay">0 pts</div>
+            </div>
+            <div class="mini-stat">
+                <div class="text-purple-200 text-xs font-black uppercase tracking-widest">Rank</div>
+                <div class="font-black text-xl" id="rankBadge">#1</div>
+            </div>
+            <div class="mini-stat">
+                <div class="text-purple-200 text-xs font-black uppercase tracking-widest">Streak</div>
+                <div class="font-black text-xl" id="streakDisplay">0</div>
+            </div>
+            <div class="mini-stat">
+                <div class="text-purple-200 text-xs font-black uppercase tracking-widest">Group</div>
+                <div class="font-black text-xl" id="groupCorrectDisplay">0 / 0</div>
+            </div>
+        </div>
+        <div class="hidden text-left" id="answerCorrection"></div>
+    </div>
 </div>
 
 <!-- ── FINISHED SCREEN ───────────────────────────────────────────────────── -->
@@ -131,6 +160,7 @@
     <h2 class="fredoka text-4xl mb-2">Game Over!</h2>
     <div class="fredoka text-5xl text-yellow-300 my-3" id="finalScore">0</div>
     <div class="text-purple-200 font-bold mb-6" id="finalRank">points</div>
+    <div class="w-full max-w-3xl mt-4 mb-5" id="reviewPanel"></div>
     <button onclick="window.location.href='/'"
             class="bg-yellow-400 text-gray-800 border-none rounded-2xl px-8 py-4 font-black text-lg cursor-pointer"
             style="font-family:'Nunito',sans-serif; box-shadow:0 5px 0 #b45309">
@@ -178,7 +208,9 @@
         '/images/ben.png',
         '/images/domis.png',
         '/images/loco.jpeg',
-        '/images/poco.jpeg'
+        '/images/poco.jpeg',
+        '/images/kedi1.png',
+        '/images/kedi2.png'
     ];
 
     const params  = new URLSearchParams(window.location.search);
@@ -190,7 +222,7 @@
     document.getElementById('avatarDisplay').innerHTML =
         `<div class="w-32 h-28">${AVATAR_MAP[AVATAR]||AVATAR_MAP.white}</div>`;
 
-    let myScore = 0, hasAnswered = false, lastAnswer = -1;
+    let myScore = 0, hasAnswered = false, lastAnswer = -1, totalPlayers = 0;
 
     // ── WebSocket ─────────────────────────────────────────────────────────
     const socket = new SockJS('/ws');
@@ -204,16 +236,29 @@
     function handleEvent(data) {
         console.log("EVENT RECEIVED:", data);
         const s = (data.status||'').toLowerCase();
-        if (s==='question') onQuestion(data);
+        if (s==='question') {
+            if (data.questionText) onQuestion(data);
+            updateAnswerProgress(data);
+        }
         if (s==='results')  onResults(data);
         if (s==='finished') onFinished(data);
+    }
+
+    function updateAnswerProgress(data) {
+        if (typeof data.totalPlayers === 'number') totalPlayers = data.totalPlayers;
+        const answered = typeof data.answeredCount === 'number' ? data.answeredCount : 0;
+        document.getElementById('playerAnswersCount').textContent = answered;
+        document.getElementById('playerTotalPlayers').textContent = totalPlayers;
+        document.getElementById('submittedAnswersCount').textContent = answered;
+        document.getElementById('submittedTotalPlayers').textContent = totalPlayers;
     }
 
     function onQuestion(data) {
         hasAnswered = false;
         lastAnswer = -1;
 
-        showScreen('screenAnswer'); // 🔥 FIRST
+        updateAnswerProgress(data);
+        showScreen('screenAnswer');
 
         document.querySelectorAll('.ans-btn').forEach(b => b.disabled = false);
 
@@ -226,8 +271,8 @@
 
         grid.innerHTML = data.options.map((opt, i) => `
         <button class="ans-btn ans-${i}" onclick="submitAnswer(${i})">
-            <span class="text-3xl">${icons[i]}</span>
-            <span class="text-xs font-black uppercase tracking-wider">${opt}</span>
+            <span class="text-4xl">${icons[i]}</span>
+            <span class="sr-only">${esc(opt)}</span>
         </button>
     `).join('');
     }
@@ -243,10 +288,12 @@
 
 
     function onResults(data) {
+        const result = (data.playerResults||[]).find(p => p.playerName===PLAYER);
         const correct  = data.correctIndex;
-        const wasRight = lastAnswer === correct;
+        const wasRight = result ? result.correct : lastAnswer === correct;
         const me       = (data.leaderboard||[]).find(p => p.playerName===PLAYER);
-        if (me) myScore = me.score;
+        if (result) myScore = result.totalScore;
+        else if (me) myScore = me.score;
 
         const badge = document.getElementById('resultBadge');
         if (wasRight) {
@@ -266,28 +313,103 @@
             document.getElementById('resultTitle').textContent = 'Wrong…';
         }
 
-        document.getElementById('scoreDisplay').textContent = `${myScore} pts total`;
-        const rank = me ? me.rank : '?';
-        const medals = {1:'🥇',2:'🥈',3:'🥉'};
-        document.getElementById('rankBadge').textContent = `${medals[rank]||''}  #${rank} on the leaderboard`;
+        const rank = result ? result.rank : (me ? me.rank : '?');
+        document.getElementById('pointsDisplay').textContent = `+${result ? result.pointsEarned : 0} pts`;
+        document.getElementById('scoreDisplay').textContent = `${myScore} pts`;
+        document.getElementById('rankBadge').innerHTML = `#${rank} ${rankDeltaBadge(result ? result.rankDelta : 0)}`;
+        document.getElementById('streakDisplay').textContent = result ? `${result.streak}` : '0';
+        document.getElementById('groupCorrectDisplay').textContent = result
+            ? `${result.correctCount} / ${result.answeredCount}`
+            : '0 / 0';
+        renderQuestionCorrection(result);
         showScreen('screenResults');
+    }
+
+    function renderQuestionCorrection(result) {
+        const el = document.getElementById('answerCorrection');
+        if (!result || result.correct) {
+            el.classList.add('hidden');
+            el.innerHTML = '';
+            return;
+        }
+        el.classList.remove('hidden');
+        el.innerHTML = `
+            <div class="review-answer review-wrong">Your answer: ${esc(result.selectedAnswerText)}</div>
+            <div class="review-answer review-correct">Correct answer: ${esc(result.correctAnswerText)}</div>
+        `;
+    }
+
+    function rankDeltaBadge(delta) {
+        if (!delta) return '';
+        const cls = delta > 0 ? 'rank-up' : 'rank-down';
+        const text = delta > 0 ? `↑${delta}` : `↓${Math.abs(delta)}`;
+        return `<span class="rank-move ${cls}">${text}</span>`;
     }
 
     function onFinished(data) {
         const me   = (data.leaderboard||[]).find(p => p.playerName===PLAYER);
+        const review = (data.playerReviews||[]).find(p => p.playerName===PLAYER);
         if (me) myScore = me.score;
         const rank = me ? me.rank : '?';
         const emojis = {1:'🏆',2:'🥈',3:'🥉'};
         document.getElementById('finalEmoji').textContent  = emojis[rank] || '🐑';
         document.getElementById('finalScore').textContent  = `${myScore} pts`;
         document.getElementById('finalRank').textContent   = `You finished #${rank}`;
+        renderReview(review);
         showScreen('screenFinished');
+    }
+
+    function renderReview(review) {
+        const panel = document.getElementById('reviewPanel');
+        if (!review) {
+            panel.innerHTML = '';
+            return;
+        }
+        panel.innerHTML = `
+            <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-4">
+                ${summaryTile('Correct', review.correctCount)}
+                ${summaryTile('Incorrect', review.incorrectCount)}
+                ${summaryTile('Accuracy', `${review.accuracyPercentage}%`)}
+                ${summaryTile('Score', review.finalScore)}
+            </div>
+            <div class="flex flex-col gap-3 max-h-[44vh] overflow-y-auto pr-1">
+                ${(review.answers||[]).map(answer => reviewCard(answer)).join('')}
+            </div>
+        `;
+    }
+
+    function summaryTile(label, value) {
+        return `<div class="review-card text-center"><div class="text-purple-200 text-xs font-black uppercase tracking-widest">${label}</div><div class="text-2xl font-black">${value}</div></div>`;
+    }
+
+    function reviewCard(answer) {
+        const selectedClass = answer.correct ? 'review-correct' : 'review-wrong';
+        const selectedLabel = answer.correct ? 'Your answer' : 'Your answer';
+        const correctBlock = answer.correct ? '' : `
+            <div class="review-answer review-correct">
+                Correct answer: ${esc(answer.correctAnswerText)}
+            </div>`;
+        return `
+            <div class="review-card text-left">
+                <div class="flex items-start justify-between gap-3">
+                    <div class="font-black">Q${answer.questionNumber}. ${esc(answer.questionText)}</div>
+                    <div class="font-black ${answer.correct ? 'text-green-300' : 'text-red-300'}">${answer.correct ? 'Correct' : 'Wrong'}</div>
+                </div>
+                <div class="review-answer ${selectedClass}">
+                    ${selectedLabel}: ${esc(answer.selectedAnswerText)}
+                </div>
+                ${correctBlock}
+                <div class="text-yellow-200 font-black mt-2">${answer.pointsEarned} pts</div>
+            </div>
+        `;
     }
 
     function showScreen(id) {
         document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
         document.getElementById(id).classList.add('active');
     }
+
+    function esc(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
 </script>
 </body>
 </html>

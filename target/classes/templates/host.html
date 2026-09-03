@@ -22,8 +22,7 @@
 
         .timer-arc { stroke-dasharray:188.5; stroke-dashoffset:0; transition: stroke-dashoffset 1s linear; }
 
-        .lb-row { animation: slideIn .4s ease both; }
-        @keyframes slideIn { from{transform:translateX(-24px);opacity:0} to{transform:translateX(0);opacity:1} }
+        .lb-row { will-change: transform; }
 
         .player-chip { animation: popIn .3s cubic-bezier(0.34,1.56,0.64,1); }
         @keyframes popIn { from{transform:scale(0.3);opacity:0} to{transform:scale(1);opacity:1} }
@@ -135,14 +134,26 @@
         .falling-pet {
             position: fixed;
             top: -150px;
-            width: 110px;
-            height: 110px;
+            width: clamp(54px, 8vw, 96px);
+            height: clamp(54px, 8vw, 96px);
             border-radius: 50%;
             object-fit: cover;
             box-shadow: 0 8px 16px rgba(0,0,0,0.3);
             border: 4px solid rgba(255, 255, 255, 0.4);
             z-index: 0; /* Keeps them behind the main content panels */
             pointer-events: none;
+        }
+        .answered-pill { background:rgba(255,255,255,.18); border:1px solid rgba(255,255,255,.18); border-radius:999px; padding:8px 16px; }
+        .stat-grid { display:flex; flex-wrap:wrap; justify-content:center; gap:8px; width:100%; max-width:700px; margin-top:14px; }
+        .stat-card { background:rgba(255,255,255,.13); border:1px solid rgba(255,255,255,.16); border-radius:999px; padding:8px 13px; display:flex; align-items:center; gap:8px; }
+        .stat-label { font-size:.68rem; font-weight:900; text-transform:uppercase; letter-spacing:.1em; color:#ddd6fe; }
+        .stat-value { font-size:1rem; font-weight:900; color:white; line-height:1; margin-top:0; }
+        .rank-delta { font-size:.82rem; font-weight:900; padding:3px 8px; border-radius:999px; background:rgba(255,255,255,.14); animation: deltaFade 2.4s ease forwards; }
+        .rank-up { color:#86efac; }
+        .rank-down { color:#fca5a5; }
+        @keyframes deltaFade { 0%,65%{opacity:1} 100%{opacity:0} }
+        @media (max-width: 720px) {
+            .falling-pet { display:none; }
         }
     </style>
 </head>
@@ -196,9 +207,9 @@
         <div class="font-black text-xl sm:text-2xl leading-snug" id="questionText">Loading…</div>
     </div>
     <div class="grid grid-cols-2 gap-3 w-full max-w-3xl" id="optionsGrid"></div>
-    <div class="mt-4 flex items-center gap-3 text-purple-200 font-bold">
+    <div class="mt-4 flex items-center gap-3 text-purple-100 font-bold answered-pill">
         <span class="text-3xl font-black text-white" id="answersCount">0</span>
-        <span class="text-sm">/ <span id="totalPlayers">0</span> answered</span>
+        <span class="text-sm">/ <span id="totalPlayers">0</span> people answered</span>
     </div>
 </div>
 
@@ -226,6 +237,7 @@
     <div class="bar-wrap" id="barChart"></div>
 
     <div class="mt-5 text-purple-200 font-bold text-sm" id="bdSummary"></div>
+    <div class="stat-grid" id="questionStats"></div>
 </div>
 
 <!-- ── RESULTS / LEADERBOARD ── -->
@@ -327,9 +339,22 @@
     // ── Game events ───────────────────────────────────────────────────────
     function handleGame(data) {
         const s = (data.status||'').toLowerCase();
-        if (s==='question') showQuestion(data);
+        if (s==='question') {
+            if (data.questionText) showQuestion(data);
+            updateAnswerProgress(data);
+        }
         if (s==='results')  showBreakdown(data);
         if (s==='finished') showFinished(data);
+    }
+
+    function updateAnswerProgress(data) {
+        if (typeof data.answeredCount === 'number') {
+            document.getElementById('answersCount').textContent = data.answeredCount;
+        }
+        if (typeof data.totalPlayers === 'number') {
+            totalPlayerCount = data.totalPlayers;
+            document.getElementById('totalPlayers').textContent = data.totalPlayers;
+        }
     }
 
     // ── Question screen ───────────────────────────────────────────────────
@@ -342,7 +367,8 @@
         document.getElementById('qCounter').textContent     = `Q ${data.questionNumber}/${data.totalQuestions}`;
         document.getElementById('questionText').textContent  = data.questionText;
         document.getElementById('answersCount').textContent  = '0';
-        document.getElementById('totalPlayers').textContent  = totalPlayerCount;
+        document.getElementById('totalPlayers').textContent  = data.totalPlayers ?? totalPlayerCount;
+        updateAnswerProgress(data);
 
         const icons = ['▲','●','■','✦'];
         const cls = ['opt-0','opt-1','opt-2','opt-3'];
@@ -416,8 +442,10 @@
         }));
 
         const correctCount = counts[correct] || 0;
+        const stats = data.questionStats || {};
         document.getElementById('bdSummary').textContent =
-            `${correctCount} of ${total} player${total!==1?'s':''} got it right ✅`;
+            `${correctCount} of ${total} player${total!==1?'s':''} got it right`;
+        renderQuestionStats(stats, total, correctCount);
 
         // 5-second countdown then show leaderboard
         startCountdown(5, () => showResults(data));
@@ -444,6 +472,26 @@
         renderLB(data.leaderboard, 'leaderboard');
     }
 
+    function renderQuestionStats(stats, totalAnswered, correctCount) {
+        const answered = stats.answeredCount ?? totalAnswered;
+        const total = stats.totalPlayers ?? totalPlayerCount;
+        const pct = stats.correctPercentage ?? (answered ? Math.round(correctCount * 100 / answered) : 0);
+        const points = stats.pointsAwarded ?? 0;
+        const cumulative = stats.cumulativePoints ?? 0;
+        document.getElementById('questionStats').innerHTML = [
+            ['Answered', `${answered} / ${total}`],
+            ['Correct', `${correctCount}`],
+            ['Accuracy', `${pct}%`],
+            ['Question Points', `${points}`],
+            ['Total Points', `${cumulative}`]
+        ].map(([label, value]) => `
+            <div class="stat-card">
+                <div class="stat-label">${label}</div>
+                <div class="stat-value">${value}</div>
+            </div>
+        `).join('');
+    }
+
     async function nextQuestion() { await fetch(`/api/game/${CODE}/next`, {method:'POST'}); }
 
     // ── Finished ──────────────────────────────────────────────────────────
@@ -455,16 +503,45 @@
 
     // ── Leaderboard renderer ──────────────────────────────────────────────
     function renderLB(board, id) {
+        const container = document.getElementById(id);
+        const previousRects = new Map();
+        container.querySelectorAll('[data-player]').forEach(row => {
+            previousRects.set(row.dataset.player, row.getBoundingClientRect());
+        });
         const medals  = ['🥇','🥈','🥉'];
         const bgRows  = ['bg-yellow-400 bg-opacity-30','bg-white bg-opacity-20','bg-white bg-opacity-15'];
-        document.getElementById(id).innerHTML = (board||[]).slice(0,6).map((p,i) => `
+        container.innerHTML = (board||[]).slice(0,6).map((p,i) => `
     <div class="lb-row flex items-center gap-4 rounded-2xl px-5 py-4 ${bgRows[i]||'bg-white bg-opacity-10'}"
-         style="animation-delay:${i*0.08}">
+         data-player="${escAttr(p.playerName)}">
       <div class="text-3xl w-10 text-center">${medals[i]||('#'+p.rank)}</div>
       <div class="w-11 h-10">${AVATAR_MAP[playerAvatars[p.playerName]||'white']||AVATAR_MAP.white}</div>
       <div class="flex-1 font-black text-lg sm:text-xl">${esc(p.playerName)}</div>
+      ${rankDeltaText(p.rankDelta) ? `<div class="rank-delta ${rankDeltaClass(p.rankDelta)}">${rankDeltaText(p.rankDelta)}</div>` : ''}
       <div class="font-black text-yellow-300 text-xl sm:text-2xl">${p.score} <span class="text-sm opacity-70">pts</span></div>
     </div>`).join('');
+        requestAnimationFrame(() => {
+            container.querySelectorAll('[data-player]').forEach(row => {
+                const oldRect = previousRects.get(row.dataset.player);
+                if (!oldRect) return;
+                const newRect = row.getBoundingClientRect();
+                const deltaY = oldRect.top - newRect.top;
+                if (!deltaY) return;
+                row.animate([
+                    { transform: `translateY(${deltaY}px)` },
+                    { transform: 'translateY(0)' }
+                ], { duration: 420, easing: 'cubic-bezier(.2,.8,.2,1)' });
+            });
+        });
+    }
+
+    function rankDeltaText(delta) {
+        if (!delta) return '';
+        return delta > 0 ? `↑${delta}` : `↓${Math.abs(delta)}`;
+    }
+
+    function rankDeltaClass(delta) {
+        if (!delta) return '';
+        return delta > 0 ? 'rank-up' : 'rank-down';
     }
 
     // ── Helpers ───────────────────────────────────────────────────────────
@@ -473,33 +550,45 @@
         document.getElementById(id).classList.add('active');
     }
     function esc(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+    function escAttr(s) { return esc(s).replace(/"/g,'&quot;').replace(/'/g,'&#39;'); }
     // Add to the bottom of the existing script in host.html
 
     const PET_IMAGES = [
         '/images/ben.png',
         '/images/loco.jpeg',
         '/images/domis.png',
-        '/images/poco.jpeg'
+        '/images/poco.jpeg',
+        '/images/kedi1.png',
+        '/images/kedi2.png'
     ];
 
     function spawnFallingPets() {
         const container = document.body;
-        const petCount = 8; // How many pets you want falling at once
+        const petCount = Math.min(4, PET_IMAGES.length);
+        const shuffled = shuffledPets();
 
         for(let i = 0; i < petCount; i++) {
             const img = document.createElement('img');
-            // Pick a random pet
-            img.src = PET_IMAGES[Math.floor(Math.random() * PET_IMAGES.length)];
+            img.src = shuffled[i];
             img.className = 'falling-pet';
 
-            // Randomize starting position, speed, and delay
-            img.style.left = (Math.random() * 100) + 'vw';
+            const sideLane = i % 2 === 0 ? Math.random() * 10 : 90 + Math.random() * 8;
+            img.style.left = sideLane + 'vw';
             const duration = 6 + (Math.random() * 4);
             const delay = Math.random() * 5;
 
             img.style.animation = `petFall ${duration}s linear ${delay}s infinite`;
             container.appendChild(img);
         }
+    }
+
+    function shuffledPets() {
+        const pets = [...PET_IMAGES];
+        for (let i = pets.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [pets[i], pets[j]] = [pets[j], pets[i]];
+        }
+        return pets;
     }
 
     // Start the animation when the page loads
