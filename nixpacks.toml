@@ -1,0 +1,5 @@
+[variables]
+NIXPACKS_JDK_VERSION = "21"
+
+[start]
+cmd = "java $JAVA_OPTS -Dserver.port=${PORT:-8080} -jar target/demo-0.0.1-SNAPSHOT.jar"
