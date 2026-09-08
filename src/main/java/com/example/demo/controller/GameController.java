@@ -15,6 +15,7 @@ public class GameController {
         this.gameService = gameService;
     }
 
+    // railway test checkpoint
     // ── POST /api/game/create ────────────────────────────────────────────────
     // Host calls this to create a new game room.
     // Returns the 4-letter code that players use to join.
