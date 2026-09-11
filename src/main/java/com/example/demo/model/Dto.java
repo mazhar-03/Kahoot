@@ -6,15 +6,21 @@ public class Dto {
 
     public static class AnswerPayload {
         private String gameCode;
+        private String playerId;
         private String playerName;
         private int answerIndex;
+        private int questionNumber;
         public AnswerPayload() {}
         public String getGameCode()    { return gameCode; }
+        public String getPlayerId()    { return playerId; }
         public String getPlayerName()  { return playerName; }
         public int    getAnswerIndex() { return answerIndex; }
+        public int    getQuestionNumber() { return questionNumber; }
         public void setGameCode(String v)   { this.gameCode = v; }
+        public void setPlayerId(String v)   { this.playerId = v; }
         public void setPlayerName(String v) { this.playerName = v; }
         public void setAnswerIndex(int v)   { this.answerIndex = v; }
+        public void setQuestionNumber(int v){ this.questionNumber = v; }
     }
 
     public static class QuestionBroadcast {
@@ -26,14 +32,17 @@ public class Dto {
         private int timeLimitSeconds;
         private int answeredCount;
         private int totalPlayers;
+        private long questionStartedAt;
+        private long questionEndsAt;
         public QuestionBroadcast() {}
         public QuestionBroadcast(GameStatus status, int questionNumber, int totalQuestions,
                                  String questionText, List<String> options, int timeLimitSeconds,
-                                 int answeredCount, int totalPlayers) {
+                                 int answeredCount, int totalPlayers, long questionStartedAt, long questionEndsAt) {
             this.status = status; this.questionNumber = questionNumber;
             this.totalQuestions = totalQuestions; this.questionText = questionText;
             this.options = options; this.timeLimitSeconds = timeLimitSeconds;
             this.answeredCount = answeredCount; this.totalPlayers = totalPlayers;
+            this.questionStartedAt = questionStartedAt; this.questionEndsAt = questionEndsAt;
         }
         public GameStatus   getStatus()           { return status; }
         public int          getQuestionNumber()   { return questionNumber; }
@@ -43,6 +52,8 @@ public class Dto {
         public int          getTimeLimitSeconds() { return timeLimitSeconds; }
         public int          getAnsweredCount()    { return answeredCount; }
         public int          getTotalPlayers()     { return totalPlayers; }
+        public long         getQuestionStartedAt(){ return questionStartedAt; }
+        public long         getQuestionEndsAt()   { return questionEndsAt; }
     }
 
     public static class AnswerProgressBroadcast {
@@ -76,19 +87,29 @@ public class Dto {
 
     public static class ResultsBroadcast {
         private GameStatus status;
+        private int questionNumber;
+        private int totalQuestions;
+        private String questionText;
+        private List<String> options;
         private int correctIndex;
         private List<LeaderboardEntry> leaderboard;
         private int[] answerCounts; // how many players picked each option
         private QuestionStats questionStats;
         private List<PlayerQuestionResult> playerResults;
         public ResultsBroadcast() {}
-        public ResultsBroadcast(GameStatus status, int correctIndex, List<LeaderboardEntry> leaderboard,
+        public ResultsBroadcast(GameStatus status, int questionNumber, int totalQuestions,
+                                String questionText, List<String> options, int correctIndex, List<LeaderboardEntry> leaderboard,
                                 int[] answerCounts, QuestionStats questionStats, List<PlayerQuestionResult> playerResults) {
-            this.status = status; this.correctIndex = correctIndex;
+            this.status = status; this.questionNumber = questionNumber; this.totalQuestions = totalQuestions;
+            this.questionText = questionText; this.options = options; this.correctIndex = correctIndex;
             this.leaderboard = leaderboard; this.answerCounts = answerCounts; this.questionStats = questionStats;
             this.playerResults = playerResults;
         }
         public GameStatus             getStatus()       { return status; }
+        public int                    getQuestionNumber(){ return questionNumber; }
+        public int                    getTotalQuestions(){ return totalQuestions; }
+        public String                 getQuestionText() { return questionText; }
+        public List<String>           getOptions()      { return options; }
         public int                    getCorrectIndex() { return correctIndex; }
         public List<LeaderboardEntry> getLeaderboard()  { return leaderboard; }
         public int[]                  getAnswerCounts() { return answerCounts; }
@@ -176,13 +197,15 @@ public class Dto {
         private int correctAnswerIndex;
         private String correctAnswerText;
         private int pointsEarned;
+        private boolean timedOut;
         public AnswerReview() {}
         public AnswerReview(int questionNumber, String questionText, boolean correct, int selectedAnswerIndex,
-                            String selectedAnswerText, int correctAnswerIndex, String correctAnswerText, int pointsEarned) {
+                            String selectedAnswerText, int correctAnswerIndex, String correctAnswerText, int pointsEarned,
+                            boolean timedOut) {
             this.questionNumber = questionNumber; this.questionText = questionText; this.correct = correct;
             this.selectedAnswerIndex = selectedAnswerIndex; this.selectedAnswerText = selectedAnswerText;
             this.correctAnswerIndex = correctAnswerIndex; this.correctAnswerText = correctAnswerText;
-            this.pointsEarned = pointsEarned;
+            this.pointsEarned = pointsEarned; this.timedOut = timedOut;
         }
         public int getQuestionNumber() { return questionNumber; }
         public String getQuestionText() { return questionText; }
@@ -192,6 +215,7 @@ public class Dto {
         public int getCorrectAnswerIndex() { return correctAnswerIndex; }
         public String getCorrectAnswerText() { return correctAnswerText; }
         public int getPointsEarned() { return pointsEarned; }
+        public boolean isTimedOut() { return timedOut; }
     }
 
     public static class LeaderboardEntry {
@@ -214,10 +238,12 @@ public class Dto {
 
     /** Lobby broadcast now includes avatarId per player */
     public static class PlayerInfo {
+        private String id;
         private String name;
         private String avatarId;
         public PlayerInfo() {}
-        public PlayerInfo(String name, String avatarId) { this.name = name; this.avatarId = avatarId; }
+        public PlayerInfo(String id, String name, String avatarId) { this.id = id; this.name = name; this.avatarId = avatarId; }
+        public String getId()       { return id; }
         public String getName()     { return name; }
         public String getAvatarId() { return avatarId; }
     }
@@ -239,20 +265,97 @@ public class Dto {
     /** Now includes avatarId */
     public static class JoinGameRequest {
         private String playerName;
+        private String playerId;
         private String avatarId;
         public JoinGameRequest() {}
         public String getPlayerName()         { return playerName; }
         public void   setPlayerName(String v) { this.playerName = v; }
+        public String getPlayerId()           { return playerId; }
+        public void   setPlayerId(String v)   { this.playerId = v; }
         public String getAvatarId()           { return avatarId; }
         public void   setAvatarId(String v)   { this.avatarId = v; }
+    }
+
+    public static class LeaveGameRequest {
+        private String playerName;
+        private String playerId;
+        public LeaveGameRequest() {}
+        public String getPlayerName()         { return playerName; }
+        public void   setPlayerName(String v) { this.playerName = v; }
+        public String getPlayerId()           { return playerId; }
+        public void   setPlayerId(String v)   { this.playerId = v; }
     }
 
     public static class ApiResponse {
         private boolean success;
         private String message;
+        private String playerId;
         public ApiResponse() {}
         public ApiResponse(boolean success, String message) { this.success = success; this.message = message; }
+        public ApiResponse(boolean success, String message, String playerId) {
+            this.success = success; this.message = message; this.playerId = playerId;
+        }
         public boolean isSuccess()  { return success; }
         public String  getMessage() { return message; }
+        public String  getPlayerId(){ return playerId; }
+    }
+
+    public static class GameStateResponse {
+        private GameStatus status;
+        private int questionNumber;
+        private int totalQuestions;
+        private String questionText;
+        private List<String> options;
+        private int timeLimitSeconds;
+        private long questionStartedAt;
+        private long questionEndsAt;
+        private int readySecondsRemaining;
+        private int answeredCount;
+        private int totalPlayers;
+        private boolean playerAnswered;
+        private int playerAnswerIndex;
+        private int correctIndex;
+        private int[] answerCounts;
+        private List<LeaderboardEntry> leaderboard;
+        private QuestionStats questionStats;
+        private PlayerQuestionResult playerResult;
+        private PlayerReview playerReview;
+        public GameStateResponse() {}
+
+        public GameStateResponse(GameStatus status, int questionNumber, int totalQuestions, String questionText,
+                                 List<String> options, int timeLimitSeconds, long questionStartedAt,
+                                 long questionEndsAt, int readySecondsRemaining, int answeredCount, int totalPlayers,
+                                 boolean playerAnswered, int playerAnswerIndex, int correctIndex, int[] answerCounts,
+                                 List<LeaderboardEntry> leaderboard, QuestionStats questionStats,
+                                 PlayerQuestionResult playerResult, PlayerReview playerReview) {
+            this.status = status; this.questionNumber = questionNumber; this.totalQuestions = totalQuestions;
+            this.questionText = questionText; this.options = options; this.timeLimitSeconds = timeLimitSeconds;
+            this.questionStartedAt = questionStartedAt; this.questionEndsAt = questionEndsAt;
+            this.readySecondsRemaining = readySecondsRemaining; this.answeredCount = answeredCount;
+            this.totalPlayers = totalPlayers; this.playerAnswered = playerAnswered;
+            this.playerAnswerIndex = playerAnswerIndex; this.correctIndex = correctIndex;
+            this.answerCounts = answerCounts; this.leaderboard = leaderboard; this.questionStats = questionStats;
+            this.playerResult = playerResult; this.playerReview = playerReview;
+        }
+
+        public GameStatus getStatus() { return status; }
+        public int getQuestionNumber() { return questionNumber; }
+        public int getTotalQuestions() { return totalQuestions; }
+        public String getQuestionText() { return questionText; }
+        public List<String> getOptions() { return options; }
+        public int getTimeLimitSeconds() { return timeLimitSeconds; }
+        public long getQuestionStartedAt() { return questionStartedAt; }
+        public long getQuestionEndsAt() { return questionEndsAt; }
+        public int getReadySecondsRemaining() { return readySecondsRemaining; }
+        public int getAnsweredCount() { return answeredCount; }
+        public int getTotalPlayers() { return totalPlayers; }
+        public boolean isPlayerAnswered() { return playerAnswered; }
+        public int getPlayerAnswerIndex() { return playerAnswerIndex; }
+        public int getCorrectIndex() { return correctIndex; }
+        public int[] getAnswerCounts() { return answerCounts; }
+        public List<LeaderboardEntry> getLeaderboard() { return leaderboard; }
+        public QuestionStats getQuestionStats() { return questionStats; }
+        public PlayerQuestionResult getPlayerResult() { return playerResult; }
+        public PlayerReview getPlayerReview() { return playerReview; }
     }
 }

@@ -72,6 +72,12 @@
         .dot:nth-child(3){animation-delay:.4s}
         @keyframes dotBounce { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-8px)} }
         .answer-meta { background:rgba(255,255,255,.16); border:1px solid rgba(255,255,255,.16); border-radius:999px; padding:8px 14px; font-weight:900; }
+        .btn-secondary {
+            background:rgba(255,255,255,.14); color:white; border:1px solid rgba(255,255,255,.22);
+            border-radius:14px; padding:12px 24px; font-size:1rem; font-family:'Nunito',sans-serif;
+            font-weight:900; cursor:pointer; transition:background .15s, transform .1s;
+        }
+        .btn-secondary:hover { background:rgba(255,255,255,.22); transform:translateY(1px); }
         .review-card { background:rgba(255,255,255,.12); border:1px solid rgba(255,255,255,.16); border-radius:18px; padding:16px; }
         .review-answer { border-radius:14px; padding:10px 12px; margin-top:8px; font-weight:900; }
         .review-correct { background:rgba(34,197,94,.22); border:2px solid #22c55e; }
@@ -104,6 +110,7 @@
         Waiting for the host
         <span class="dot">.</span><span class="dot">.</span><span class="dot">.</span>
     </div>
+    <button class="btn-secondary mt-6" onclick="leaveLobbyAndGoHome()">Back to Homepage</button>
 </div>
 
 <!-- ── GET READY SCREEN ─────────────────────────────────────────────────── -->
@@ -230,22 +237,32 @@
     const CODE    = params.get('code')   || sessionStorage.getItem('gameCode')   || '';
     const PLAYER  = params.get('name')   || sessionStorage.getItem('playerName') || 'Player';
     const AVATAR  = params.get('avatar') || sessionStorage.getItem('avatarId')   || 'white';
+    const PLAYER_ID = sessionStorage.getItem('playerId') || sessionStorage.getItem(`playerId:${CODE}:${PLAYER}`) || '';
 
     document.getElementById('nameBadge').textContent = PLAYER;
     document.getElementById('avatarDisplay').innerHTML =
         `<div class="w-32 h-28">${AVATAR_MAP[AVATAR]||AVATAR_MAP.white}</div>`;
 
-    let myScore = 0, hasAnswered = false, lastAnswer = -1, totalPlayers = 0;
+    let myScore = 0, hasAnswered = false, lastAnswer = -1, totalPlayers = 0, currentQuestionNumber = 0;
     let readyInterval = null, submitFeedbackTimer = null;
 
     // ── WebSocket ─────────────────────────────────────────────────────────
-    const socket = new SockJS('/ws');
-    const stomp  = Stomp.over(socket);
-    stomp.debug  = null;
+    let stomp = null;
 
-    stomp.connect({}, () => {
-        stomp.subscribe(`/topic/game/${CODE}`, msg => handleEvent(JSON.parse(msg.body)));
-    });
+    connectSocket();
+
+    let leavingLobby = false;
+
+    function connectSocket() {
+        if (stomp && stomp.connected) return;
+        const socket = new SockJS('/ws');
+        stomp = Stomp.over(socket);
+        stomp.debug = null;
+        stomp.connect({}, () => {
+            stomp.subscribe(`/topic/game/${CODE}`, msg => handleEvent(JSON.parse(msg.body)));
+            requestGameState();
+        }, () => setTimeout(connectSocket, 1200));
+    }
 
     function handleEvent(data) {
         console.log("EVENT RECEIVED:", data);
@@ -271,10 +288,17 @@
     function onQuestion(data) {
         clearInterval(readyInterval);
         clearTimeout(submitFeedbackTimer);
+        currentQuestionNumber = data.questionNumber || currentQuestionNumber;
         hasAnswered = false;
         lastAnswer = -1;
 
         updateAnswerProgress(data);
+        if (data.playerAnswered) {
+            hasAnswered = true;
+            lastAnswer = data.playerAnswerIndex ?? -1;
+            showScreen('screenSubmitted');
+            return;
+        }
         showScreen('screenAnswer');
 
         document.querySelectorAll('.ans-btn').forEach(b => b.disabled = false);
@@ -299,7 +323,8 @@
         clearTimeout(submitFeedbackTimer);
         showScreen('screenReady');
         document.getElementById('readyQuestionLabel').textContent = `Question ${data.questionNumber}/${data.totalQuestions}`;
-        let left = data.readySeconds || 3;
+        currentQuestionNumber = data.questionNumber || currentQuestionNumber;
+        let left = data.readySeconds || data.readySecondsRemaining || 3;
         const num = document.getElementById('readyNumber');
         function tick() {
             num.textContent = left;
@@ -315,13 +340,23 @@
 
     function submitAnswer(idx) {
         if (hasAnswered) return;
+        if (!stomp || !stomp.connected) {
+            connectSocket();
+            return;
+        }
         hasAnswered = true; lastAnswer = idx;
         document.querySelectorAll('.ans-btn').forEach((b, i) => {
             b.disabled = true;
             b.classList.toggle('locked', i === idx);
             b.classList.toggle('dimmed', i !== idx);
         });
-        stomp.send('/app/answer', {}, JSON.stringify({ gameCode:CODE, playerName:PLAYER, answerIndex:idx }));
+        stomp.send('/app/answer', {}, JSON.stringify({
+            gameCode: CODE,
+            playerId: PLAYER_ID,
+            playerName: PLAYER,
+            answerIndex: idx,
+            questionNumber: currentQuestionNumber
+        }));
         submitFeedbackTimer = setTimeout(() => {
             if (hasAnswered) showScreen('screenSubmitted');
         }, 320);
@@ -331,7 +366,7 @@
 
     function onResults(data) {
         clearTimeout(submitFeedbackTimer);
-        const result = (data.playerResults||[]).find(p => p.playerName===PLAYER);
+        const result = data.playerResult || (data.playerResults||[]).find(p => p.playerName===PLAYER);
         const correct  = data.correctIndex;
         const wasRight = result ? result.correct : lastAnswer === correct;
         const me       = (data.leaderboard||[]).find(p => p.playerName===PLAYER);
@@ -394,7 +429,7 @@
         clearInterval(readyInterval);
         clearTimeout(submitFeedbackTimer);
         const me   = (data.leaderboard||[]).find(p => p.playerName===PLAYER);
-        const review = (data.playerReviews||[]).find(p => p.playerName===PLAYER);
+        const review = data.playerReview || (data.playerReviews||[]).find(p => p.playerName===PLAYER);
         if (me) myScore = me.score;
         const rank = me ? me.rank : '?';
         const emojis = {1:'🏆',2:'🥈',3:'🥉'};
@@ -465,6 +500,57 @@
         }
         requestAnimationFrame(step);
     }
+
+    async function requestGameState() {
+        if (!CODE) return;
+        const query = new URLSearchParams({ playerName: PLAYER });
+        if (PLAYER_ID) query.set('playerId', PLAYER_ID);
+        try {
+            const res = await fetch(`/api/game/${CODE}/state?${query.toString()}`);
+            if (res.ok) handleEvent(await res.json());
+        } catch(e) {}
+    }
+
+    function isWaitingScreenActive() {
+        return document.getElementById('screenWaiting').classList.contains('active');
+    }
+
+    function leavePayload() {
+        return JSON.stringify({
+            playerId: PLAYER_ID,
+            playerName: PLAYER
+        });
+    }
+
+    async function leaveLobbyAndGoHome() {
+        leavingLobby = true;
+        if (CODE && isWaitingScreenActive()) {
+            try {
+                await fetch(`/api/game/${CODE}/leave`, {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: leavePayload(),
+                    keepalive: true
+                });
+            } catch(e) {}
+        }
+        window.location.href = '/';
+    }
+
+    window.addEventListener('pagehide', () => {
+        if (leavingLobby || !CODE || !isWaitingScreenActive()) return;
+        const body = new Blob([leavePayload()], {type: 'application/json'});
+        navigator.sendBeacon(`/api/game/${CODE}/leave`, body);
+    });
+
+    document.addEventListener('visibilitychange', () => {
+        if (!document.hidden) {
+            connectSocket();
+            requestGameState();
+        }
+    });
+    window.addEventListener('focus', () => { connectSocket(); requestGameState(); });
+    window.addEventListener('pageshow', () => { connectSocket(); requestGameState(); });
 
     function showScreen(id) {
         document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));

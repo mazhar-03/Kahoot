@@ -45,6 +45,12 @@
         .btn-action:hover  { transform:translateY(2px); box-shadow:0 4px 0 #b45309; }
         .btn-action:active { transform:translateY(4px); box-shadow:0 2px 0 #b45309; }
         .btn-action:disabled { opacity:.4; cursor:not-allowed; transform:none; box-shadow:none; }
+        .btn-secondary {
+            background:rgba(255,255,255,.14); color:white; border:1px solid rgba(255,255,255,.22);
+            border-radius:14px; padding:12px 24px; font-size:1rem; font-family:'Nunito',sans-serif;
+            font-weight:900; cursor:pointer; transition:background .15s, transform .1s;
+        }
+        .btn-secondary:hover { background:rgba(255,255,255,.22); transform:translateY(1px); }
 
         /* Answer bar chart */
         .bar-wrap { display:flex; flex-direction:column; gap:10px; width:100%; max-width:700px; }
@@ -190,6 +196,7 @@
         <div class="text-purple-300 italic font-bold text-sm">No players yet…</div>
     </div>
     <button class="btn-action" id="startBtn" onclick="startGame()" disabled>Start the Game! </button>
+    <button class="btn-secondary mt-4" onclick="window.location.href='/'">Back to Homepage</button>
 </div>
 
 <!-- ── GET READY ── -->
@@ -253,7 +260,7 @@
 <div class="screen flex-1 flex-col items-center px-4 py-8" id="screenResults">
     <h2 class="fredoka text-3xl sm:text-4xl mb-4">Leaderboard 🏆</h2>
     <div class="flex flex-col gap-3 w-full max-w-xl" id="leaderboard"></div>
-    <button class="btn-action mt-7" onclick="nextQuestion()">Next Question →</button>
+    <button class="btn-action mt-7" id="nextQuestionBtn" onclick="nextQuestion()">Next Question →</button>
 </div>
 
 <!-- ── FINISHED ── -->
@@ -311,6 +318,9 @@
     let cdInterval      = null;
     let readyInterval   = null;
     let totalPlayerCount = 0;
+    let lastBreakdownQuestion = 0;
+    let resultsShownQuestion = 0;
+    let advancingQuestion = false;
     const leaderboardScores = {};
 
     // ── WebSocket ─────────────────────────────────────────────────────────
@@ -320,6 +330,7 @@
     stomp.connect({}, () => {
         stomp.subscribe(`/topic/game/${CODE}`,  msg => handleGame(JSON.parse(msg.body)));
         stomp.subscribe(`/topic/lobby/${CODE}`, msg => updateLobby(JSON.parse(msg.body)));
+        requestGameState();
     });
 
     // ── Lobby ─────────────────────────────────────────────────────────────
@@ -353,11 +364,15 @@
         const s = (data.status||'').toLowerCase();
         if (s==='get_ready') showReady(data);
         if (s==='question') {
+            advancingQuestion = false;
             if (data.questionText) showQuestion(data);
             updateAnswerProgress(data);
         }
-        if (s==='results')  showBreakdown(data);
-        if (s==='finished') showFinished(data);
+        if (s==='results')  handleResults(data);
+        if (s==='finished') {
+            advancingQuestion = false;
+            showFinished(data);
+        }
     }
 
     function updateAnswerProgress(data) {
@@ -395,16 +410,17 @@
         </div>
 
 `).join('');
-        startTimer(data.timeLimitSeconds);
+        startTimer(data.questionEndsAt, data.timeLimitSeconds);
     }
 
     function showReady(data) {
+        advancingQuestion = false;
         clearInterval(timerInterval);
         clearInterval(cdInterval);
         clearInterval(readyInterval);
         showScreen('screenReady');
         document.getElementById('readyQuestionLabel').textContent = `Question ${data.questionNumber}/${data.totalQuestions}`;
-        let left = data.readySeconds || 3;
+        let left = data.readySeconds || data.readySecondsRemaining || 3;
         const num = document.getElementById('readyNumber');
         function tick() {
             num.textContent = left;
@@ -418,26 +434,57 @@
         readyInterval = setInterval(tick, 1000);
     }
 
-    function startTimer(sec) {
+    function startTimer(questionEndsAt, fallbackSeconds) {
         clearInterval(timerInterval);
-        let left = sec;
         const arc = document.getElementById('timerArc');
         const num = document.getElementById('timerNum');
         const C = 188.5;
+        const total = Math.max(1, fallbackSeconds || Math.ceil((questionEndsAt - Date.now()) / 1000));
         function tick() {
+            const left = Math.max(0, Math.ceil((questionEndsAt - Date.now()) / 1000));
             num.textContent = left;
-            arc.style.strokeDashoffset = C * (1 - left/sec);
+            arc.style.strokeDashoffset = C * (1 - left/total);
             arc.style.stroke = left <= 5 ? '#ef4444' : '#fbbf24';
             if (left <= 0) clearInterval(timerInterval);
-            left--;
         }
         tick(); timerInterval = setInterval(tick, 1000);
     }
 
+    async function requestGameState() {
+        if (!CODE) return;
+        try {
+            const res = await fetch(`/api/game/${CODE}/state`);
+            if (res.ok) handleGame(await res.json());
+        } catch(e) {}
+    }
+
+    document.addEventListener('visibilitychange', () => {
+        if (!document.hidden) requestGameState();
+    });
+    window.addEventListener('focus', requestGameState);
+    window.addEventListener('pageshow', requestGameState);
+
     // ── Breakdown screen (shown right after everyone answers) ─────────────
+    function handleResults(data) {
+        const questionNumber = data.questionNumber || 0;
+        if (advancingQuestion && questionNumber && questionNumber === resultsShownQuestion) {
+            return;
+        }
+        if (questionNumber && questionNumber === resultsShownQuestion) {
+            showResults(data);
+            return;
+        }
+        if (questionNumber && questionNumber === lastBreakdownQuestion) {
+            showResults(data);
+            return;
+        }
+        showBreakdown(data);
+    }
+
     function showBreakdown(data) {
         clearInterval(timerInterval);
         showScreen('screenBreakdown');
+        if (data.questionNumber) lastBreakdownQuestion = data.questionNumber;
 
         const counts    = data.answerCounts || [0,0,0,0];
         const correct   = data.correctIndex;
@@ -446,9 +493,8 @@
         const bgCls     = ['opt-0','opt-1','opt-2','opt-3'];
         const optColors = ['#e21b3c','#1368ce','#26890c','#ffa602'];
 
-        document.getElementById('bdQuestionText').textContent = currentOptions.length
-            ? document.getElementById('questionText').textContent
-            : '';
+        if (data.options && data.options.length) currentOptions = data.options;
+        document.getElementById('bdQuestionText').textContent = data.questionText || document.getElementById('questionText').textContent || '';
 
         // Build bar chart
         document.getElementById('barChart').innerHTML = currentOptions.map((opt, i) => {
@@ -477,8 +523,9 @@
 
         const correctCount = counts[correct] || 0;
         const stats = data.questionStats || {};
+        const summaryTotal = stats.totalPlayers ?? counts.reduce((a,b) => a+b, 0);
         document.getElementById('bdSummary').textContent =
-            `${correctCount} of ${total} player${total!==1?'s':''} got it right`;
+            `${correctCount} of ${summaryTotal} player${summaryTotal!==1?'s':''} got it right`;
         renderQuestionStats(stats, total, correctCount);
 
         // 5-second countdown then show leaderboard
@@ -503,6 +550,11 @@
     // ── Results / leaderboard ─────────────────────────────────────────────
     function showResults(data) {
         showScreen('screenResults');
+        if (data.questionNumber) resultsShownQuestion = data.questionNumber;
+        const btn = document.getElementById('nextQuestionBtn');
+        const isLastQuestion = data.questionNumber && data.totalQuestions && data.questionNumber >= data.totalQuestions;
+        btn.textContent = isLastQuestion ? 'See Leaderboard →' : 'Next Question →';
+        btn.disabled = false;
         renderLB(data.leaderboard, 'leaderboard');
     }
 
@@ -526,7 +578,23 @@
         `).join('');
     }
 
-    async function nextQuestion() { await fetch(`/api/game/${CODE}/next`, {method:'POST'}); }
+    async function nextQuestion() {
+        advancingQuestion = true;
+        const btn = document.getElementById('nextQuestionBtn');
+        btn.disabled = true;
+        try {
+            const res = await fetch(`/api/game/${CODE}/next`, {method:'POST'});
+            if (!res.ok) {
+                advancingQuestion = false;
+                btn.disabled = false;
+            } else {
+                requestGameState();
+            }
+        } catch(e) {
+            advancingQuestion = false;
+            btn.disabled = false;
+        }
+    }
 
     // ── Finished ──────────────────────────────────────────────────────────
     function showFinished(data) {

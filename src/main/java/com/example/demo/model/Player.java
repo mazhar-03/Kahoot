@@ -2,8 +2,10 @@ package com.example.demo.model;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.UUID;
 
 public class Player {
+    private final String id;
     private final String name;
     private String avatarId = "white";
     private int score = 0;
@@ -11,9 +13,11 @@ public class Player {
     private int lastAnswerIndex = -1; // track which option they chose
     private final List<AnswerRecord> answerHistory = new ArrayList<>();
 
-    public Player(String name) { this.name = name; }
-    public Player(String name, String avatarId) { this.name = name; this.avatarId = avatarId; }
+    public Player(String name) { this(UUID.randomUUID().toString(), name, "white"); }
+    public Player(String name, String avatarId) { this(UUID.randomUUID().toString(), name, avatarId); }
+    public Player(String id, String name, String avatarId) { this.id = id; this.name = name; this.avatarId = avatarId; }
 
+    public String  getId()                             { return id; }
     public String  getName()                           { return name; }
     public String  getAvatarId()                       { return avatarId; }
     public void    setAvatarId(String a)               { this.avatarId = a; }

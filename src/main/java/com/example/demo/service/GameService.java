@@ -48,14 +48,29 @@ public class GameService {
      * Adds a player to the lobby and broadcasts the updated player list.
      * Returns false if the game doesn't exist or has already started.
      */
-    public boolean joinGame(String code, String playerName, String avatarId) {
+    public Player joinGame(String code, String playerName, String avatarId, String playerId) {
+        Game game = games.get(code);
+        if (game == null || game.getStatus() != GameStatus.WAITING) {
+            return null;
+        }
+        Player player = game.joinOrReconnect(playerName.trim(), avatarId != null ? avatarId : "white", playerId);
+        broadcastLobby(game);
+        return player;
+    }
+
+    public boolean leaveGame(String code, String playerId, String playerName) {
         Game game = games.get(code);
         if (game == null || game.getStatus() != GameStatus.WAITING) {
             return false;
         }
-        game.addPlayer(playerName.trim(), avatarId != null ? avatarId : "white");
-        broadcastLobby(game);
-        return true;
+        boolean removed;
+        synchronized (game) {
+            removed = game.removePlayer(playerId, playerName);
+        }
+        if (removed) {
+            broadcastLobby(game);
+        }
+        return removed;
     }
 
     /**
@@ -98,43 +113,36 @@ public class GameService {
      */
     public void submitAnswer(AnswerPayload payload) {
         Game game = games.get(payload.getGameCode());
-        if (game == null || game.getStatus() != GameStatus.QUESTION) {
+        if (game == null) {
             return;
         }
 
-        Player player = game.getPlayers().get(payload.getPlayerName());
-        if (player == null || player.isAnsweredCurrentQuestion()) {
-            return; // unknown player or already answered
-        }
+        synchronized (game) {
+            int questionIndex = game.getCurrentQuestionIndex();
+            if (payload.getQuestionNumber() <= 0) {
+                return;
+            }
+            int payloadQuestionIndex = payload.getQuestionNumber() - 1;
+            if (game.getStatus() != GameStatus.QUESTION || game.isRoundFinalized() || payloadQuestionIndex != questionIndex) {
+                return;
+            }
+            if (System.currentTimeMillis() >= game.getQuestionEndsAt()) {
+                finalizeRound(game, questionIndex);
+                return;
+            }
 
-        // Mark answered immediately so they can't answer again
-        player.setAnsweredCurrentQuestion(true);
-        player.setLastAnswerIndex(payload.getAnswerIndex());
+            Player player = game.findPlayer(payload.getPlayerId(), payload.getPlayerName());
+            if (player == null || player.isAnsweredCurrentQuestion()) {
+                return; // unknown player or already answered
+            }
 
-        Question q = game.currentQuestion();
-        boolean correct = payload.getAnswerIndex() == q.getCorrectIndex();
-        int points = 0;
-        if (correct) {
-            long elapsed = System.currentTimeMillis() - game.getQuestionStartTime();
-            points = calculatePoints(elapsed, q.getTimeLimitSeconds());
-            player.addScore(points);
-        }
-        player.addAnswerRecord(new AnswerRecord(
-                game.getCurrentQuestionIndex(),
-                q.getText(),
-                payload.getAnswerIndex(),
-                answerText(q, payload.getAnswerIndex()),
-                q.getCorrectIndex(),
-                answerText(q, q.getCorrectIndex()),
-                correct,
-                points
-        ));
+            recordAnswer(game, player, payload.getAnswerIndex(), false);
 
-        broadcastAnswerProgress(game);
+            broadcastAnswerProgress(game);
 
-        // If everyone answered, show results right away
-        if (game.allPlayersAnswered()) {
-            broadcastResults(game);
+            if (game.allPlayersAnswered()) {
+                finalizeRound(game, questionIndex);
+            }
         }
     }
 
@@ -149,46 +157,122 @@ public class GameService {
         return game == null ? null : game.getStatus();
     }
 
+    public GameStateResponse getGameState(String code, String playerId, String playerName) {
+        Game game = games.get(code);
+        if (game == null) {
+            return null;
+        }
+        synchronized (game) {
+            Player player = game.findPlayer(playerId, playerName);
+            if (game.getStatus() == GameStatus.QUESTION && !game.isRoundFinalized()
+                    && System.currentTimeMillis() >= game.getQuestionEndsAt()) {
+                finalizeRound(game, game.getCurrentQuestionIndex());
+            }
+            return buildGameState(game, player);
+        }
+    }
+
     // ── Private helpers ───────────────────────────────────────────────────────
 
     private void prepareNextQuestion(Game game) {
-        game.setPreviousRanks(buildRankMap(game.getLeaderboard()));
-        game.setCurrentQuestionIndex(game.getCurrentQuestionIndex() + 1);
-        game.setStatus(GameStatus.GET_READY);
-        game.resetAnswerFlags();
+        synchronized (game) {
+            game.setPreviousRanks(buildRankMap(game.getLeaderboard()));
+            game.setCurrentQuestionIndex(game.getCurrentQuestionIndex() + 1);
+            game.setRoundFinalized(false);
+            game.setQuestionStartTime(0);
+            game.setQuestionEndsAt(0);
+            game.setReadyEndsAt(System.currentTimeMillis() + READY_SECONDS * 1000L);
+            game.setStatus(GameStatus.GET_READY);
+            game.resetAnswerFlags();
 
-        messaging.convertAndSend("/topic/game/" + game.getCode(), new GetReadyBroadcast(
-                GameStatus.GET_READY,
-                game.getCurrentQuestionIndex() + 1,
-                game.getQuestions().size(),
-                READY_SECONDS
-        ));
+            messaging.convertAndSend("/topic/game/" + game.getCode(), new GetReadyBroadcast(
+                    GameStatus.GET_READY,
+                    game.getCurrentQuestionIndex() + 1,
+                    game.getQuestions().size(),
+                    READY_SECONDS
+            ));
 
-        CompletableFuture.delayedExecutor(READY_SECONDS, TimeUnit.SECONDS).execute(() -> advanceToQuestion(game));
+            int questionIndex = game.getCurrentQuestionIndex();
+            CompletableFuture.delayedExecutor(READY_SECONDS, TimeUnit.SECONDS).execute(() -> advanceToQuestion(game, questionIndex));
+        }
     }
 
-    private void advanceToQuestion(Game game) {
-        if (game.getStatus() != GameStatus.GET_READY) {
+    private void advanceToQuestion(Game game, int questionIndex) {
+        synchronized (game) {
+            if (game.getStatus() != GameStatus.GET_READY || game.getCurrentQuestionIndex() != questionIndex) {
+                return;
+            }
+            long now = System.currentTimeMillis();
+            game.setStatus(GameStatus.QUESTION);
+            game.setRoundFinalized(false);
+            game.resetAnswerFlags();
+            game.setQuestionStartTime(now);
+
+            Question q = game.currentQuestion();
+            game.setQuestionEndsAt(now + q.getTimeLimitSeconds() * 1000L);
+
+            QuestionBroadcast broadcast = new QuestionBroadcast(
+                    GameStatus.QUESTION,
+                    game.getCurrentQuestionIndex() + 1,   // 1-based
+                    game.getQuestions().size(),
+                    q.getText(),
+                    q.getOptions(),
+                    q.getTimeLimitSeconds(),
+                    game.getAnsweredCount(),
+                    game.getPlayers().size(),
+                    game.getQuestionStartTime(),
+                    game.getQuestionEndsAt()
+            );
+
+            messaging.convertAndSend("/topic/game/" + game.getCode(), broadcast);
+
+            CompletableFuture.delayedExecutor(q.getTimeLimitSeconds(), TimeUnit.SECONDS)
+                    .execute(() -> finalizeRound(game, questionIndex));
+        }
+    }
+
+    private void finalizeRound(Game game, int questionIndex) {
+        synchronized (game) {
+            if (game.isRoundFinalized() || game.getStatus() != GameStatus.QUESTION
+                    || game.getCurrentQuestionIndex() != questionIndex) {
+                return;
+            }
+            game.setRoundFinalized(true);
+            for (Player player : game.getPlayers().values()) {
+                if (!player.isAnsweredCurrentQuestion()) {
+                    recordAnswer(game, player, -1, true);
+                }
+            }
+            broadcastResults(game);
+        }
+    }
+
+    private void recordAnswer(Game game, Player player, int answerIndex, boolean timedOut) {
+        if (player.isAnsweredCurrentQuestion()) {
             return;
         }
-        game.setStatus(GameStatus.QUESTION);
-        game.resetAnswerFlags();
-        game.setQuestionStartTime(System.currentTimeMillis());
+        player.setAnsweredCurrentQuestion(true);
+        player.setLastAnswerIndex(answerIndex);
 
         Question q = game.currentQuestion();
-
-        QuestionBroadcast broadcast = new QuestionBroadcast(
-                GameStatus.QUESTION,
-                game.getCurrentQuestionIndex() + 1,   // 1-based
-                game.getQuestions().size(),
+        boolean correct = !timedOut && answerIndex == q.getCorrectIndex();
+        int points = 0;
+        if (correct) {
+            long elapsed = System.currentTimeMillis() - game.getQuestionStartTime();
+            points = calculatePoints(elapsed, q.getTimeLimitSeconds());
+            player.addScore(points);
+        }
+        player.addAnswerRecord(new AnswerRecord(
+                game.getCurrentQuestionIndex(),
                 q.getText(),
-                q.getOptions(),
-                q.getTimeLimitSeconds(),
-                game.getAnsweredCount(),
-                game.getPlayers().size()
-        );
-
-        messaging.convertAndSend("/topic/game/" + game.getCode(), broadcast);
+                answerIndex,
+                timedOut ? "No answer" : answerText(q, answerIndex),
+                q.getCorrectIndex(),
+                answerText(q, q.getCorrectIndex()),
+                correct,
+                points,
+                timedOut
+        ));
     }
 
     private void broadcastResults(Game game) {
@@ -202,9 +286,14 @@ public class GameService {
         }
 
         List<LeaderboardEntry> board = buildLeaderboard(game);
+        Question question = game.currentQuestion();
         ResultsBroadcast broadcast = new ResultsBroadcast(
                 GameStatus.RESULTS,
-                game.currentQuestion().getCorrectIndex(),
+                game.getCurrentQuestionIndex() + 1,
+                game.getQuestions().size(),
+                question.getText(),
+                question.getOptions(),
+                question.getCorrectIndex(),
                 board,
                 answerCounts,
                 buildQuestionStats(game, answerCounts),
@@ -232,7 +321,7 @@ public class GameService {
     private void broadcastLobby(Game game) {
         List<PlayerInfo> players = game.getPlayers().values().stream()
                 .sorted((a, b) -> a.getName().compareTo(b.getName()))
-                .map(p -> new PlayerInfo(p.getName(), p.getAvatarId()))
+                .map(p -> new PlayerInfo(p.getId(), p.getName(), p.getAvatarId()))
                 .toList();
         messaging.convertAndSend("/topic/lobby/" + game.getCode(), new LobbyBroadcast(players));
     }
@@ -272,7 +361,7 @@ public class GameService {
 
     private QuestionStats buildQuestionStats(Game game, int[] answerCounts) {
         Question q = game.currentQuestion();
-        int answered = Arrays.stream(answerCounts).sum();
+        int answered = game.getAnsweredCount();
         int correct = q == null ? 0 : answerCounts[q.getCorrectIndex()];
         int incorrect = answered - correct;
         int pct = answered == 0 ? 0 : (int) Math.round((correct * 100.0) / answered);
@@ -298,7 +387,8 @@ public class GameService {
                                     a.getSelectedAnswerText(),
                                     a.getCorrectAnswerIndex(),
                                     a.getCorrectAnswerText(),
-                                    a.getPointsEarned()
+                                    a.getPointsEarned(),
+                                    a.isTimedOut()
                             ))
                             .toList();
                     int correct = (int) answers.stream().filter(AnswerReview::isCorrect).count();
@@ -313,7 +403,7 @@ public class GameService {
         Question q = game.currentQuestion();
         int questionIndex = game.getCurrentQuestionIndex();
         int correctCount = q == null ? 0 : answerCounts[q.getCorrectIndex()];
-        int answeredCount = Arrays.stream(answerCounts).sum();
+        int answeredCount = game.getPlayers().size();
         Map<String, LeaderboardEntry> ranks = board.stream()
                 .collect(HashMap::new, (map, entry) -> map.put(entry.getPlayerName(), entry), HashMap::putAll);
 
@@ -343,6 +433,61 @@ public class GameService {
                     );
                 })
                 .toList();
+    }
+
+    private GameStateResponse buildGameState(Game game, Player player) {
+        Question q = game.currentQuestion();
+        int[] answerCounts = buildAnswerCounts(game);
+        List<LeaderboardEntry> board = buildLeaderboard(game);
+        QuestionStats stats = game.getStatus() == GameStatus.RESULTS || game.getStatus() == GameStatus.FINISHED
+                ? buildQuestionStats(game, answerCounts)
+                : null;
+        List<PlayerQuestionResult> playerResults = game.getStatus() == GameStatus.RESULTS
+                ? buildPlayerQuestionResults(game, board, answerCounts)
+                : List.of();
+        PlayerQuestionResult playerResult = player == null ? null : playerResults.stream()
+                .filter(r -> r.getPlayerName().equals(player.getName()))
+                .findFirst()
+                .orElse(null);
+        PlayerReview playerReview = player == null || game.getStatus() != GameStatus.FINISHED ? null
+                : buildPlayerReviews(game).stream()
+                .filter(r -> r.getPlayerName().equals(player.getName()))
+                .findFirst()
+                .orElse(null);
+
+        int readySecondsRemaining = game.getStatus() == GameStatus.GET_READY
+                ? Math.max(1, (int) Math.ceil((game.getReadyEndsAt() - System.currentTimeMillis()) / 1000.0))
+                : 0;
+        return new GameStateResponse(
+                game.getStatus(),
+                game.getCurrentQuestionIndex() + 1,
+                game.getQuestions().size(),
+                q == null ? null : q.getText(),
+                q == null ? List.of() : q.getOptions(),
+                q == null ? 0 : q.getTimeLimitSeconds(),
+                game.getQuestionStartTime(),
+                game.getQuestionEndsAt(),
+                readySecondsRemaining,
+                game.getAnsweredCount(),
+                game.getPlayers().size(),
+                player != null && player.isAnsweredCurrentQuestion(),
+                player == null ? -1 : player.getLastAnswerIndex(),
+                q == null ? -1 : q.getCorrectIndex(),
+                answerCounts,
+                board,
+                stats,
+                playerResult,
+                playerReview
+        );
+    }
+
+    private int[] buildAnswerCounts(Game game) {
+        int[] answerCounts = new int[4];
+        for (Player p : game.getPlayers().values()) {
+            int idx = p.getLastAnswerIndex();
+            if (idx >= 0 && idx < 4) answerCounts[idx]++;
+        }
+        return answerCounts;
     }
 
     private int currentStreak(Player player) {

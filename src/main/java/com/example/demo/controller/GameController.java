@@ -1,6 +1,7 @@
 package com.example.demo.controller;
 
 import com.example.demo.model.Dto.*;
+import com.example.demo.model.Player;
 import com.example.demo.service.GameService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -38,14 +39,29 @@ public class GameController {
                     .body(new ApiResponse(false, "Player name cannot be empty"));
         }
 
-        boolean joined = gameService.joinGame(code.toUpperCase(), request.getPlayerName(), request.getAvatarId());
+        Player player = gameService.joinGame(code.toUpperCase(), request.getPlayerName(), request.getAvatarId(), request.getPlayerId());
 
-        if (!joined) {
+        if (player == null) {
             return ResponseEntity.badRequest()
                     .body(new ApiResponse(false, "Game not found or already started"));
         }
 
-        return ResponseEntity.ok(new ApiResponse(true, "Joined game " + code));
+        return ResponseEntity.ok(new ApiResponse(true, "Joined game " + code, player.getId()));
+    }
+
+    @PostMapping("/{code}/leave")
+    public ResponseEntity<ApiResponse> leaveGame(
+            @PathVariable String code,
+            @RequestBody LeaveGameRequest request) {
+
+        boolean removed = gameService.leaveGame(code.toUpperCase(), request.getPlayerId(), request.getPlayerName());
+
+        if (!removed) {
+            return ResponseEntity.badRequest()
+                    .body(new ApiResponse(false, "Cannot leave game"));
+        }
+
+        return ResponseEntity.ok(new ApiResponse(true, "Left game " + code));
     }
 
     // ── POST /api/game/{code}/start ──────────────────────────────────────────
@@ -87,5 +103,17 @@ public class GameController {
             return ResponseEntity.notFound().build();
         }
         return ResponseEntity.ok(new ApiResponse(true, status.name()));
+    }
+
+    @GetMapping("/{code}/state")
+    public ResponseEntity<?> getState(
+            @PathVariable String code,
+            @RequestParam(required = false) String playerId,
+            @RequestParam(required = false) String playerName) {
+        var state = gameService.getGameState(code.toUpperCase(), playerId, playerName);
+        if (state == null) {
+            return ResponseEntity.notFound().build();
+        }
+        return ResponseEntity.ok(state);
     }
 }

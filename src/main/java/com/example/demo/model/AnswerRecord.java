@@ -9,9 +9,17 @@ public class AnswerRecord {
     private final String correctAnswerText;
     private final boolean correct;
     private final int pointsEarned;
+    private final boolean timedOut;
 
     public AnswerRecord(int questionIndex, String questionText, int selectedAnswerIndex, String selectedAnswerText,
                         int correctAnswerIndex, String correctAnswerText, boolean correct, int pointsEarned) {
+        this(questionIndex, questionText, selectedAnswerIndex, selectedAnswerText, correctAnswerIndex,
+                correctAnswerText, correct, pointsEarned, false);
+    }
+
+    public AnswerRecord(int questionIndex, String questionText, int selectedAnswerIndex, String selectedAnswerText,
+                        int correctAnswerIndex, String correctAnswerText, boolean correct, int pointsEarned,
+                        boolean timedOut) {
         this.questionIndex = questionIndex;
         this.questionText = questionText;
         this.selectedAnswerIndex = selectedAnswerIndex;
@@ -20,6 +28,7 @@ public class AnswerRecord {
         this.correctAnswerText = correctAnswerText;
         this.correct = correct;
         this.pointsEarned = pointsEarned;
+        this.timedOut = timedOut;
     }
 
     public int getQuestionIndex() { return questionIndex; }
@@ -30,4 +39,5 @@ public class AnswerRecord {
     public String getCorrectAnswerText() { return correctAnswerText; }
     public boolean isCorrect() { return correct; }
     public int getPointsEarned() { return pointsEarned; }
+    public boolean isTimedOut() { return timedOut; }
 }
