@@ -233,13 +233,21 @@
         try {
             const res  = await fetch(`/api/game/${code}/join`, {
                 method:'POST', headers:{'Content-Type':'application/json'},
-                body: JSON.stringify({ playerName: name, avatarId: chosenAvatar })
+                body: JSON.stringify({
+                    playerName: name,
+                    avatarId: chosenAvatar,
+                    playerId: sessionStorage.getItem(`playerId:${code}:${name}`) || null
+                })
             });
             const data = await res.json();
             if (data.success) {
                 sessionStorage.setItem('playerName', name);
                 sessionStorage.setItem('gameCode',   code);
                 sessionStorage.setItem('avatarId',   chosenAvatar);
+                if (data.playerId) {
+                    sessionStorage.setItem(`playerId:${code}:${name}`, data.playerId);
+                    sessionStorage.setItem('playerId', data.playerId);
+                }
                 window.location.href = `/player?code=${code}&name=${encodeURIComponent(name)}&avatar=${chosenAvatar}`;
             } else { showErr(data.message || 'Could not join'); }
         } catch(e) { showErr('Connection error'); }

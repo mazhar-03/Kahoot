@@ -106,7 +106,8 @@ public class Game {
 
     public List<Player> getLeaderboard() {
         return players.values().stream()
-                .sorted((a, b) -> Integer.compare(b.getScore(), a.getScore()))
+                .sorted(java.util.Comparator.comparingInt(Player::getScore).reversed()
+                        .thenComparing(Player::getName))
                 .toList();
     }
 }

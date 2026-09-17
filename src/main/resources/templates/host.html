@@ -1,6 +1,8 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+    <link rel="stylesheet" href="/css/podium.css"/>
+    <script src="/js/podium.js"></script>
     <meta charset="UTF-8"/>
     <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
     <script src="https://cdn.tailwindcss.com"></script>
@@ -267,7 +269,7 @@
 <div class="screen flex-1 flex-col items-center justify-center px-4 py-8" id="screenFinished">
     <div class="text-7xl mb-4" style="animation:sheepBounce 1.5s ease-in-out infinite alternate">🏆</div>
     <h2 class="fredoka text-4xl mb-6">Game Over!</h2>
-    <div class="grid grid-cols-3 gap-3 w-full max-w-xl mb-5 items-end" id="podium"></div>
+    <div id="podium"></div>
     <div class="flex flex-col gap-3 w-full max-w-xl" id="finalLeaderboard"></div>
     <button class="btn-action mt-8" onclick="window.location.href='/'">Play Again 🐑</button>
 </div>
@@ -601,8 +603,9 @@
         clearInterval(cdInterval);
         clearInterval(readyInterval);
         showScreen('screenFinished');
-        renderPodium(data.leaderboard || []);
-        renderLB(data.leaderboard, 'finalLeaderboard');
+        QuizPodium.reveal(document.getElementById('podium'), data.leaderboard, board => {
+            renderLB(board, 'finalLeaderboard');
+        });
     }
 
     // ── Leaderboard renderer ──────────────────────────────────────────────
@@ -614,7 +617,8 @@
         });
         const medals  = ['🥇','🥈','🥉'];
         const bgRows  = ['bg-yellow-400 bg-opacity-30','bg-white bg-opacity-20','bg-white bg-opacity-15'];
-        container.innerHTML = (board||[]).slice(0,6).map((p,i) => `
+        const visibleBoard = id === 'finalLeaderboard' ? (board || []) : (board || []).slice(0, 6);
+        container.innerHTML = visibleBoard.map((p,i) => `
     <div class="lb-row flex items-center gap-4 rounded-2xl px-5 py-4 ${bgRows[i]||'bg-white bg-opacity-10'}"
          data-player="${escAttr(p.playerName)}">
       <div class="text-3xl w-10 text-center">${medals[i]||('#'+p.rank)}</div>
@@ -635,27 +639,13 @@
                     { transform: 'translateY(0)' }
                 ], { duration: 420, easing: 'cubic-bezier(.2,.8,.2,1)' });
             });
-            (board||[]).slice(0,6).forEach(p => {
+            visibleBoard.forEach(p => {
                 const scoreEl = container.querySelector(`[data-score-player="${cssEscape(p.playerName)}"]`);
                 const from = leaderboardScores[p.playerName] ?? p.score;
                 animateNumber(scoreEl, from, p.score, 500);
                 leaderboardScores[p.playerName] = p.score;
             });
         });
-    }
-
-    function renderPodium(board) {
-        const top = [board[1], board[0], board[2]];
-        const heights = ['min-h-[110px]', 'min-h-[145px]', 'min-h-[95px]'];
-        const labels = ['#2', '#1', '#3'];
-        document.getElementById('podium').innerHTML = top.map((p, i) => p ? `
-            <div class="bg-white bg-opacity-15 rounded-2xl p-3 flex flex-col items-center justify-end ${heights[i]}">
-                <div class="w-14 h-12 mb-2">${AVATAR_MAP[playerAvatars[p.playerName]||'white']||AVATAR_MAP.white}</div>
-                <div class="fredoka text-2xl text-yellow-300">${labels[i]}</div>
-                <div class="font-black text-sm text-center truncate w-full">${esc(p.playerName)}</div>
-                <div class="font-black text-purple-100 text-sm">${p.score} pts</div>
-            </div>
-        ` : '<div></div>').join('');
     }
 
     function animateNumber(el, from, to, duration) {

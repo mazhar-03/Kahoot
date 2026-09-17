@@ -1,6 +1,8 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+    <link rel="stylesheet" href="/css/podium.css"/>
+    <script src="/js/podium.js"></script>
     <meta charset="UTF-8"/>
     <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
     <title>Play — Baaaad Quiz</title>
@@ -176,11 +178,14 @@
 
 <!-- ── FINISHED SCREEN ───────────────────────────────────────────────────── -->
 <div class="screen" id="screenFinished">
+    <div id="playerPodium"></div>
+    <div id="personalFinal" class="w-full flex flex-col items-center" style="display:none">
     <div class="text-7xl mb-4" style="animation:sheepFloat 2s ease-in-out infinite alternate" id="finalEmoji">🏆</div>
     <h2 class="fredoka text-4xl mb-2">Game Over!</h2>
     <div class="fredoka text-5xl text-yellow-300 my-3" id="finalScore">0</div>
     <div class="text-purple-200 font-bold mb-6" id="finalRank">points</div>
     <div class="w-full max-w-3xl mt-4 mb-5" id="reviewPanel"></div>
+    </div>
     <button onclick="window.location.href='/'"
             class="bg-yellow-400 text-gray-800 border-none rounded-2xl px-8 py-4 font-black text-lg cursor-pointer"
             style="font-family:'Nunito',sans-serif; box-shadow:0 5px 0 #b45309">
@@ -438,6 +443,9 @@
         document.getElementById('finalRank').textContent   = `You finished #${rank}`;
         renderReview(review);
         showScreen('screenFinished');
+        QuizPodium.reveal(document.getElementById('playerPodium'), data.leaderboard, () => {
+            document.getElementById('personalFinal').style.display = 'flex';
+        });
     }
 
     function renderReview(review) {
@@ -454,7 +462,7 @@
                 ${summaryTile('Score', review.finalScore)}
             </div>
             <div class="flex flex-col gap-3 max-h-[44vh] overflow-y-auto pr-1">
-                ${(review.answers||[]).map(answer => reviewCard(answer)).join('')}
+                ${(review.answers||[]).filter(answer => answer.correct === false).map(answer => reviewCard(answer)).join('') || '<p class="font-black text-center text-green-200">Perfect score! You didn\'t miss any questions.</p>'}
             </div>
         `;
     }
@@ -471,7 +479,7 @@
                 Correct answer: ${esc(answer.correctAnswerText)}
             </div>`;
         return `
-            <details class="review-card text-left">
+            <details open class="review-card text-left">
                 <summary class="flex items-start justify-between gap-3">
                     <div class="font-black">Q${answer.questionNumber}. ${esc(answer.questionText)}</div>
                     <div class="font-black ${answer.correct ? 'text-green-300' : 'text-red-300'}">${answer.correct ? 'Correct' : 'Wrong'}</div>

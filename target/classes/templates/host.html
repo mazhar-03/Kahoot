@@ -1,6 +1,8 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+    <link rel="stylesheet" href="/css/podium.css"/>
+    <script src="/js/podium.js"></script>
     <meta charset="UTF-8"/>
     <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
     <script src="https://cdn.tailwindcss.com"></script>
@@ -45,6 +47,12 @@
         .btn-action:hover  { transform:translateY(2px); box-shadow:0 4px 0 #b45309; }
         .btn-action:active { transform:translateY(4px); box-shadow:0 2px 0 #b45309; }
         .btn-action:disabled { opacity:.4; cursor:not-allowed; transform:none; box-shadow:none; }
+        .btn-secondary {
+            background:rgba(255,255,255,.14); color:white; border:1px solid rgba(255,255,255,.22);
+            border-radius:14px; padding:12px 24px; font-size:1rem; font-family:'Nunito',sans-serif;
+            font-weight:900; cursor:pointer; transition:background .15s, transform .1s;
+        }
+        .btn-secondary:hover { background:rgba(255,255,255,.22); transform:translateY(1px); }
 
         /* Answer bar chart */
         .bar-wrap { display:flex; flex-direction:column; gap:10px; width:100%; max-width:700px; }
@@ -144,6 +152,8 @@
             pointer-events: none;
         }
         .answered-pill { background:rgba(255,255,255,.18); border:1px solid rgba(255,255,255,.18); border-radius:999px; padding:8px 16px; }
+        .ready-number { animation: readyPop 1s ease-in-out infinite; }
+        @keyframes readyPop { 0%,100%{transform:scale(1);opacity:1} 50%{transform:scale(1.12);opacity:.86} }
         .stat-grid { display:flex; flex-wrap:wrap; justify-content:center; gap:8px; width:100%; max-width:700px; margin-top:14px; }
         .stat-card { background:rgba(255,255,255,.13); border:1px solid rgba(255,255,255,.16); border-radius:999px; padding:8px 13px; display:flex; align-items:center; gap:8px; }
         .stat-label { font-size:.68rem; font-weight:900; text-transform:uppercase; letter-spacing:.1em; color:#ddd6fe; }
@@ -188,6 +198,14 @@
         <div class="text-purple-300 italic font-bold text-sm">No players yet…</div>
     </div>
     <button class="btn-action" id="startBtn" onclick="startGame()" disabled>Start the Game! </button>
+    <button class="btn-secondary mt-4" onclick="window.location.href='/'">Back to Homepage</button>
+</div>
+
+<!-- ── GET READY ── -->
+<div class="screen flex-1 flex-col items-center justify-center px-4 py-8 min-h-[80vh]" id="screenReady">
+    <div class="text-purple-200 font-black uppercase tracking-[0.2em] mb-3" id="readyQuestionLabel">Question 1/5</div>
+    <h1 class="fredoka text-4xl sm:text-6xl mb-5">Get ready!</h1>
+    <div class="ready-number fredoka text-7xl text-yellow-300" id="readyNumber">3</div>
 </div>
 
 <!-- ── QUESTION ── -->
@@ -244,13 +262,14 @@
 <div class="screen flex-1 flex-col items-center px-4 py-8" id="screenResults">
     <h2 class="fredoka text-3xl sm:text-4xl mb-4">Leaderboard 🏆</h2>
     <div class="flex flex-col gap-3 w-full max-w-xl" id="leaderboard"></div>
-    <button class="btn-action mt-7" onclick="nextQuestion()">Next Question →</button>
+    <button class="btn-action mt-7" id="nextQuestionBtn" onclick="nextQuestion()">Next Question →</button>
 </div>
 
 <!-- ── FINISHED ── -->
 <div class="screen flex-1 flex-col items-center justify-center px-4 py-8" id="screenFinished">
     <div class="text-7xl mb-4" style="animation:sheepBounce 1.5s ease-in-out infinite alternate">🏆</div>
     <h2 class="fredoka text-4xl mb-6">Game Over!</h2>
+    <div id="podium"></div>
     <div class="flex flex-col gap-3 w-full max-w-xl" id="finalLeaderboard"></div>
     <button class="btn-action mt-8" onclick="window.location.href='/'">Play Again 🐑</button>
 </div>
@@ -299,7 +318,12 @@
     let currentOptions  = [];
     let timerInterval   = null;
     let cdInterval      = null;
+    let readyInterval   = null;
     let totalPlayerCount = 0;
+    let lastBreakdownQuestion = 0;
+    let resultsShownQuestion = 0;
+    let advancingQuestion = false;
+    const leaderboardScores = {};
 
     // ── WebSocket ─────────────────────────────────────────────────────────
     const socket = new SockJS('/ws');
@@ -308,6 +332,7 @@
     stomp.connect({}, () => {
         stomp.subscribe(`/topic/game/${CODE}`,  msg => handleGame(JSON.parse(msg.body)));
         stomp.subscribe(`/topic/lobby/${CODE}`, msg => updateLobby(JSON.parse(msg.body)));
+        requestGameState();
     });
 
     // ── Lobby ─────────────────────────────────────────────────────────────
@@ -339,12 +364,17 @@
     // ── Game events ───────────────────────────────────────────────────────
     function handleGame(data) {
         const s = (data.status||'').toLowerCase();
+        if (s==='get_ready') showReady(data);
         if (s==='question') {
+            advancingQuestion = false;
             if (data.questionText) showQuestion(data);
             updateAnswerProgress(data);
         }
-        if (s==='results')  showBreakdown(data);
-        if (s==='finished') showFinished(data);
+        if (s==='results')  handleResults(data);
+        if (s==='finished') {
+            advancingQuestion = false;
+            showFinished(data);
+        }
     }
 
     function updateAnswerProgress(data) {
@@ -361,6 +391,7 @@
     function showQuestion(data) {
         let answered = 0;
         let total = totalPlayerCount;
+        clearInterval(readyInterval);
         clearInterval(cdInterval);
         showScreen('screenQuestion');
         currentOptions = data.options;
@@ -381,29 +412,81 @@
         </div>
 
 `).join('');
-        startTimer(data.timeLimitSeconds);
+        startTimer(data.questionEndsAt, data.timeLimitSeconds);
     }
 
-    function startTimer(sec) {
+    function showReady(data) {
+        advancingQuestion = false;
         clearInterval(timerInterval);
-        let left = sec;
+        clearInterval(cdInterval);
+        clearInterval(readyInterval);
+        showScreen('screenReady');
+        document.getElementById('readyQuestionLabel').textContent = `Question ${data.questionNumber}/${data.totalQuestions}`;
+        let left = data.readySeconds || data.readySecondsRemaining || 3;
+        const num = document.getElementById('readyNumber');
+        function tick() {
+            num.textContent = left;
+            if (left <= 1) {
+                clearInterval(readyInterval);
+                return;
+            }
+            left--;
+        }
+        tick();
+        readyInterval = setInterval(tick, 1000);
+    }
+
+    function startTimer(questionEndsAt, fallbackSeconds) {
+        clearInterval(timerInterval);
         const arc = document.getElementById('timerArc');
         const num = document.getElementById('timerNum');
         const C = 188.5;
+        const total = Math.max(1, fallbackSeconds || Math.ceil((questionEndsAt - Date.now()) / 1000));
         function tick() {
+            const left = Math.max(0, Math.ceil((questionEndsAt - Date.now()) / 1000));
             num.textContent = left;
-            arc.style.strokeDashoffset = C * (1 - left/sec);
+            arc.style.strokeDashoffset = C * (1 - left/total);
             arc.style.stroke = left <= 5 ? '#ef4444' : '#fbbf24';
             if (left <= 0) clearInterval(timerInterval);
-            left--;
         }
         tick(); timerInterval = setInterval(tick, 1000);
     }
 
+    async function requestGameState() {
+        if (!CODE) return;
+        try {
+            const res = await fetch(`/api/game/${CODE}/state`);
+            if (res.ok) handleGame(await res.json());
+        } catch(e) {}
+    }
+
+    document.addEventListener('visibilitychange', () => {
+        if (!document.hidden) requestGameState();
+    });
+    window.addEventListener('focus', requestGameState);
+    window.addEventListener('pageshow', requestGameState);
+
     // ── Breakdown screen (shown right after everyone answers) ─────────────
+    function handleResults(data) {
+        const questionNumber = data.questionNumber || 0;
+        if (advancingQuestion && questionNumber && questionNumber === resultsShownQuestion) {
+            return;
+        }
+        if (questionNumber && questionNumber === resultsShownQuestion) {
+            showResults(data);
+            return;
+        }
+        if (questionNumber && questionNumber === lastBreakdownQuestion) {
+            showResults(data);
+            return;
+        }
+        showBreakdown(data);
+    }
+
     function showBreakdown(data) {
         clearInterval(timerInterval);
         showScreen('screenBreakdown');
+        if (data.questionNumber) lastBreakdownQuestion = data.questionNumber;
 
         const counts    = data.answerCounts || [0,0,0,0];
         const correct   = data.correctIndex;
@@ -412,9 +495,8 @@
         const bgCls     = ['opt-0','opt-1','opt-2','opt-3'];
         const optColors = ['#e21b3c','#1368ce','#26890c','#ffa602'];
 
-        document.getElementById('bdQuestionText').textContent = currentOptions.length
-            ? document.getElementById('questionText').textContent
-            : '';
+        if (data.options && data.options.length) currentOptions = data.options;
+        document.getElementById('bdQuestionText').textContent = data.questionText || document.getElementById('questionText').textContent || '';
 
         // Build bar chart
         document.getElementById('barChart').innerHTML = currentOptions.map((opt, i) => {
@@ -443,8 +525,9 @@
 
         const correctCount = counts[correct] || 0;
         const stats = data.questionStats || {};
+        const summaryTotal = stats.totalPlayers ?? counts.reduce((a,b) => a+b, 0);
         document.getElementById('bdSummary').textContent =
-            `${correctCount} of ${total} player${total!==1?'s':''} got it right`;
+            `${correctCount} of ${summaryTotal} player${summaryTotal!==1?'s':''} got it right`;
         renderQuestionStats(stats, total, correctCount);
 
         // 5-second countdown then show leaderboard
@@ -469,6 +552,11 @@
     // ── Results / leaderboard ─────────────────────────────────────────────
     function showResults(data) {
         showScreen('screenResults');
+        if (data.questionNumber) resultsShownQuestion = data.questionNumber;
+        const btn = document.getElementById('nextQuestionBtn');
+        const isLastQuestion = data.questionNumber && data.totalQuestions && data.questionNumber >= data.totalQuestions;
+        btn.textContent = isLastQuestion ? 'See Leaderboard →' : 'Next Question →';
+        btn.disabled = false;
         renderLB(data.leaderboard, 'leaderboard');
     }
 
@@ -492,13 +580,32 @@
         `).join('');
     }
 
-    async function nextQuestion() { await fetch(`/api/game/${CODE}/next`, {method:'POST'}); }
+    async function nextQuestion() {
+        advancingQuestion = true;
+        const btn = document.getElementById('nextQuestionBtn');
+        btn.disabled = true;
+        try {
+            const res = await fetch(`/api/game/${CODE}/next`, {method:'POST'});
+            if (!res.ok) {
+                advancingQuestion = false;
+                btn.disabled = false;
+            } else {
+                requestGameState();
+            }
+        } catch(e) {
+            advancingQuestion = false;
+            btn.disabled = false;
+        }
+    }
 
     // ── Finished ──────────────────────────────────────────────────────────
     function showFinished(data) {
         clearInterval(cdInterval);
+        clearInterval(readyInterval);
         showScreen('screenFinished');
-        renderLB(data.leaderboard, 'finalLeaderboard');
+        QuizPodium.reveal(document.getElementById('podium'), data.leaderboard, board => {
+            renderLB(board, 'finalLeaderboard');
+        });
     }
 
     // ── Leaderboard renderer ──────────────────────────────────────────────
@@ -510,14 +617,15 @@
         });
         const medals  = ['🥇','🥈','🥉'];
         const bgRows  = ['bg-yellow-400 bg-opacity-30','bg-white bg-opacity-20','bg-white bg-opacity-15'];
-        container.innerHTML = (board||[]).slice(0,6).map((p,i) => `
+        const visibleBoard = id === 'finalLeaderboard' ? (board || []) : (board || []).slice(0, 6);
+        container.innerHTML = visibleBoard.map((p,i) => `
     <div class="lb-row flex items-center gap-4 rounded-2xl px-5 py-4 ${bgRows[i]||'bg-white bg-opacity-10'}"
          data-player="${escAttr(p.playerName)}">
       <div class="text-3xl w-10 text-center">${medals[i]||('#'+p.rank)}</div>
       <div class="w-11 h-10">${AVATAR_MAP[playerAvatars[p.playerName]||'white']||AVATAR_MAP.white}</div>
       <div class="flex-1 font-black text-lg sm:text-xl">${esc(p.playerName)}</div>
       ${rankDeltaText(p.rankDelta) ? `<div class="rank-delta ${rankDeltaClass(p.rankDelta)}">${rankDeltaText(p.rankDelta)}</div>` : ''}
-      <div class="font-black text-yellow-300 text-xl sm:text-2xl">${p.score} <span class="text-sm opacity-70">pts</span></div>
+      <div class="font-black text-yellow-300 text-xl sm:text-2xl"><span data-score-player="${escAttr(p.playerName)}">${p.score}</span> <span class="text-sm opacity-70">pts</span></div>
     </div>`).join('');
         requestAnimationFrame(() => {
             container.querySelectorAll('[data-player]').forEach(row => {
@@ -531,7 +639,29 @@
                     { transform: 'translateY(0)' }
                 ], { duration: 420, easing: 'cubic-bezier(.2,.8,.2,1)' });
             });
+            visibleBoard.forEach(p => {
+                const scoreEl = container.querySelector(`[data-score-player="${cssEscape(p.playerName)}"]`);
+                const from = leaderboardScores[p.playerName] ?? p.score;
+                animateNumber(scoreEl, from, p.score, 500);
+                leaderboardScores[p.playerName] = p.score;
+            });
         });
+    }
+
+    function animateNumber(el, from, to, duration) {
+        if (!el || from === to) return;
+        const start = performance.now();
+        function step(now) {
+            const pct = Math.min((now - start) / duration, 1);
+            const eased = 1 - Math.pow(1 - pct, 3);
+            el.textContent = Math.round(from + (to - from) * eased);
+            if (pct < 1) requestAnimationFrame(step);
+        }
+        requestAnimationFrame(step);
+    }
+
+    function cssEscape(value) {
+        return String(value).replace(/\\/g, '\\\\').replace(/"/g, '\\"');
     }
 
     function rankDeltaText(delta) {
